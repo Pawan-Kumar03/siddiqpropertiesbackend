@@ -34,7 +34,7 @@ if (!fs.existsSync(uploadDir)) {
 // Setup multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, uploadDir);  
   },
   filename: (req, file, cb) => {
     cb(null, `${Date.now()}-${file.originalname}`);
@@ -150,7 +150,6 @@ app.delete('/api/listings/:id', async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 });
-app.use('/uploads', express.static(uploadDir));
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
