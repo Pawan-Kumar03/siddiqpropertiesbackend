@@ -1,0 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+@layer components {
+    .btn{
+        @apply ease-in-out active:scale-95 transform  rounded-md font-semibold duration-200 bg-primary-500 hover:bg-primary-400 text-white py-2 px-5 inline-block;
+    }
+}
