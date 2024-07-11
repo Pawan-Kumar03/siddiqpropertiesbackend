@@ -1,26 +1,30 @@
-node_modules
-*.env
+# Dependency directories
+node_modules/
+
+# Environment variables
+.env
+
+# Build files
+dist/
+build/
+
+# IDE or editor files
+.vscode/
+.idea/
+
 # Logs
-logs
 *.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Configuration files
+config.js
+
+# Ignore npm debug log
 npm-debug.log*
+
+# Ignore yarn debug log
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
