@@ -56,7 +56,6 @@
   // Serve static files from the 'uploads' directory
   app.use('/uploads', express.static(uploadDir));
 
-  // Setup multer for file uploads
   const storage = multer.diskStorage({
     destination: (req, file, cb) => {
       cb(null, uploadDir);
@@ -67,6 +66,39 @@
   });
 
   const upload = multer({ storage });
+  
+  // Example usage in your endpoint
+  app.post('/api/listings', upload.single('images'), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).send('No file uploaded.');
+    }
+  
+    const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
+    const imageUrl = `/uploads/${req.file.filename}`;
+  
+    const listing = new Listing({
+      title,
+      price,
+      city,
+      location,
+      propertyType,
+      beds,
+      extension,
+      image: imageUrl,
+      broker,
+      phone,
+      email,
+      whatsapp
+    });
+  
+    try {
+      const savedListing = await listing.save();
+      res.status(201).json(savedListing);
+    } catch (error) {
+      console.error('Error adding listing:', error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  });
 
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
@@ -98,39 +130,7 @@
     }
   });
 
-  app.post('/api/listings', upload.single('images'), async (req, res) => {
-    // if (!req.file) {
-    //   return res.status(400).send('No file uploaded.');
-    // }
-
-    const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
-    const imageUrl = `/uploads/${req.file.filename}`;
-
-    const listing = new Listing({
-      title,
-      price,
-      city,
-      location,
-      propertyType,
-      beds,
-      extension,
-      image: imageUrl,
-      broker,
-      phone,
-      email,
-      whatsapp
-    });
-
-    try {
-      console.log(listing)
-      const savedListing = await listing.save();
-      res.status(201).json(savedListing);
-    } catch (error) {
-      console.error('Error adding listing:', error);
-      res.status(500).json({ message: 'Internal Server Error' }); // Ensure to return JSON response for errors
-    }
-  });
-
+  
   // app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
   //   const { id } = req.params;
   //   const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
