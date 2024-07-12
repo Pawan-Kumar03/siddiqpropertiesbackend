@@ -8,8 +8,10 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import twilio from 'twilio';
+import Listing from './models/Listing.js';
 
 dotenv.config();
+
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -18,13 +20,9 @@ const __dirname = path.dirname(__filename);
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI;
 
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true,  dbName: 'PropertySales'})
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, dbName: 'PropertySales'})
   .then(() => {
     console.log('Database connected successfully');
-    // console.log('Database Name:', mongoose.connection.name);
-    // console.log('Collections:', mongoose.connection.collections);
-
-    // Start the server after successful database connection
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
@@ -57,29 +55,13 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
-// Define a model for listings
-const ListingSchema = new mongoose.Schema({
-  image: { type: String, required: true },
-  title: { type: String, required: true },
-  price: { type: String, required: true },
-  city: { type: String, required: true },
-  location: { type: String, required: true },
-  propertyType: { type: String, required: true },
-  beds: { type: Number, required: true },
-  extension: { type: String, required: true },
-  broker: { type: String, required: true },
-  email: { type: String, required: true },
-  phone: { type: String, required: true },
-  whatsapp: { type: String, required: true }
-}, { collection: 'listings' }); // Explicitly define collection name
-
-const Listing = mongoose.model('Listing', ListingSchema, 'listings'); // Use 'listings' collection explicitly
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 // Get all listings
 app.get('/api/listings', async (req, res) => {
   try {
     const listings = await Listing.find();
-    // console.log('Listings from DB:', listings); // Log fetched listings
     res.json(listings);
   } catch (error) {
     console.error('Error fetching listings:', error);
@@ -106,9 +88,18 @@ app.get('/api/listings/:id', async (req, res) => {
 
 // Post a new listing with file upload
 app.post('/api/listings', upload.single('images'), async (req, res) => {
-  const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : 'default_image_url';
+  // console.log('Received request body:', req.body);
+  // console.log('Received file:', req.file);
 
+  if (!req.file) {
+    return res.status(400).send('No file uploaded.');
+  }
+
+  // Extract details from request body
+  const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
+  const imageUrl = `/uploads/${req.file.filename}`;
+
+  // Create new listing object
   const listing = new Listing({
     title,
     price,
@@ -125,6 +116,7 @@ app.post('/api/listings', upload.single('images'), async (req, res) => {
   });
 
   try {
+    // Save listing to database
     const savedListing = await listing.save();
     // console.log('Listing added:', savedListing);
     res.status(201).json(savedListing);
@@ -175,9 +167,6 @@ app.delete('/api/listings/:id', async (req, res) => {
   }
 });
 
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-
 // Endpoint to send WhatsApp message
 app.post('/api/whatsapp', async (req, res) => {
   const accountSid = process.env.ACCOUNTSID;
@@ -196,12 +185,11 @@ app.post('/api/whatsapp', async (req, res) => {
 
   try {
     await client.messages.create({
-      from: process.env.TWILIO_WHATSAPP_NUM, // Replace with your Twilio WhatsApp number
-      to: `whatsapp:${property.broker.whatsapp}`, // Replace with recipient's WhatsApp number
+      from: process.env.TWILIO_WHATSAPP_NUM,
+      to: `whatsapp:${property.broker.whatsapp}`,
       body: messageBody,
     });
 
-    // console.log('WhatsApp message sent successfully');
     res.status(200).json({ message: 'WhatsApp message sent successfully' });
   } catch (error) {
     console.error('Error sending WhatsApp message:', error);
