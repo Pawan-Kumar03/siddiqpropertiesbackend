@@ -99,9 +99,9 @@ app.get('/api/listings/:id', async (req, res) => {
 });
 
 app.post('/api/listings', upload.single('images'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('No file uploaded.');
-  }
+  // if (!req.file) {
+  //   return res.status(400).send('No file uploaded.');
+  // }
 
   const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
   const imageUrl = `/uploads/${req.file.filename}`;
@@ -122,36 +122,37 @@ app.post('/api/listings', upload.single('images'), async (req, res) => {
   });
 
   try {
+    console.log(listing)
     const savedListing = await listing.save();
     res.status(201).json(savedListing);
   } catch (error) {
-    console.error('Failed to add listing:', error);
-    res.status(400).json({ message: error.message });
+    console.error('Error adding listing:', error);
+    res.status(500).json({ message: 'Internal Server Error' }); // Ensure to return JSON response for errors
   }
 });
 
-app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
-  const { id } = req.params;
-  const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
-  const images = req.files.map(file => `/uploads/${file.filename}`);
+// app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
+//   const { id } = req.params;
+//   const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
+//   const images = req.files.map(file => `/uploads/${file.filename}`);
 
-  try {
-    const updatedListing = await Listing.findByIdAndUpdate(
-      id,
-      { title, price, city, location, propertyType, beds, extension, images, broker, email, phone, whatsapp },
-      { new: true }
-    );
+//   try {
+//     const updatedListing = await Listing.findByIdAndUpdate(
+//       id,
+//       { title, price, city, location, propertyType, beds, extension, images, broker, email, phone, whatsapp },
+//       { new: true }
+//     );
 
-    if (!updatedListing) {
-      return res.status(404).json({ message: 'Listing not found' });
-    }
+//     if (!updatedListing) {
+//       return res.status(404).json({ message: 'Listing not found' });
+//     }
 
-    res.json(updatedListing);
-  } catch (error) {
-    console.error('Failed to update listing:', error);
-    res.status(400).json({ message: error.message });
-  }
-});
+//     res.json(updatedListing);
+//   } catch (error) {
+//     console.error('Failed to update listing:', error);
+//     res.status(400).json({ message: error.message });
+//   }
+// });
 
 app.delete('/api/listings/:id', async (req, res) => {
   const { id } = req.params;
