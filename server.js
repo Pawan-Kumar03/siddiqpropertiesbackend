@@ -29,7 +29,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   .catch(err => console.error('Database connection error:', err));
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: 'https://frontend-git-main-pawan-togas-projects.vercel.app/',
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
