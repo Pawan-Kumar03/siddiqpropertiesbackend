@@ -26,6 +26,15 @@
       app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     })
     .catch(err => console.error('Database connection error:', err));
+  // const mongoURI = 'mongodb://localhost:27017/';
+
+  // mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, dbName: 'dubizzlepropertysales' })
+  //   .then(() => {
+  //     console.log('Database connected successfully');
+  //     const PORT = process.env.PORT || 5000;
+  //     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  //   })
+  //   .catch(err => console.error('Database connection error:', err));
 
   // CORS configuration
   const allowedOrigins = [
@@ -66,7 +75,7 @@
   });
 
   const upload = multer({ storage });
-  
+
   // Example usage in your endpoint
   app.post('/api/listings', upload.single('images'), async (req, res) => {
     if (!req.file) {
@@ -103,6 +112,11 @@
   app.use(bodyParser.urlencoded({ extended: false }));
   app.use(bodyParser.json());
 
+  // Error handler middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err.message);
+  res.status(500).json({ message: 'Internal Server Error' });
+});
   // Define API endpoints
   app.get('/api/listings', async (req, res) => {
     try {
