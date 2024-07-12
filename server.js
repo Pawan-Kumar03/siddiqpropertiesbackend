@@ -12,7 +12,6 @@ import Listing from './models/Listing.js';
 
 dotenv.config();
 
-
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,7 +19,7 @@ const __dirname = path.dirname(__filename);
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI;
 
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, dbName: 'PropertySales'})
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, dbName: 'PropertySales' })
   .then(() => {
     console.log('Database connected successfully');
     const PORT = process.env.PORT || 5000;
@@ -28,8 +27,22 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   })
   .catch(err => console.error('Database connection error:', err));
 
+// CORS configuration
+const allowedOrigins = [
+  'https://frontend-git-main-pawan-togas-projects.vercel.app',
+  'http://localhost:5173'
+];
+
 app.use(cors({
-  origin: 'https://frontend-git-main-pawan-togas-projects.vercel.app/',
+  origin: (origin, callback) => {
+    // Allow requests with no origin, like mobile apps or curl requests
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error('Not allowed by CORS'));
+    }
+  },
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
@@ -58,7 +71,7 @@ const upload = multer({ storage });
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// Get all listings
+// Define API endpoints
 app.get('/api/listings', async (req, res) => {
   try {
     const listings = await Listing.find();
@@ -69,7 +82,6 @@ app.get('/api/listings', async (req, res) => {
   }
 });
 
-// Get a specific listing by ID
 app.get('/api/listings/:id', async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
@@ -86,20 +98,14 @@ app.get('/api/listings/:id', async (req, res) => {
   }
 });
 
-// Post a new listing with file upload
 app.post('/api/listings', upload.single('images'), async (req, res) => {
-  // console.log('Received request body:', req.body);
-  // console.log('Received file:', req.file);
-
   if (!req.file) {
     return res.status(400).send('No file uploaded.');
   }
 
-  // Extract details from request body
   const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
   const imageUrl = `/uploads/${req.file.filename}`;
 
-  // Create new listing object
   const listing = new Listing({
     title,
     price,
@@ -116,9 +122,7 @@ app.post('/api/listings', upload.single('images'), async (req, res) => {
   });
 
   try {
-    // Save listing to database
     const savedListing = await listing.save();
-    // console.log('Listing added:', savedListing);
     res.status(201).json(savedListing);
   } catch (error) {
     console.error('Failed to add listing:', error);
@@ -126,7 +130,6 @@ app.post('/api/listings', upload.single('images'), async (req, res) => {
   }
 });
 
-// Update a listing by ID with file upload
 app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
   const { id } = req.params;
   const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
@@ -143,7 +146,6 @@ app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
       return res.status(404).json({ message: 'Listing not found' });
     }
 
-    // console.log('Listing updated:', updatedListing);
     res.json(updatedListing);
   } catch (error) {
     console.error('Failed to update listing:', error);
@@ -151,7 +153,6 @@ app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
   }
 });
 
-// Delete a listing by ID
 app.delete('/api/listings/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -159,7 +160,6 @@ app.delete('/api/listings/:id', async (req, res) => {
     if (!deletedListing) {
       return res.status(404).json({ message: 'Listing not found' });
     }
-    // console.log('Listing deleted:', deletedListing);
     res.status(200).json({ message: 'Listing deleted successfully', listing: deletedListing });
   } catch (error) {
     console.error('Failed to delete listing:', error);
@@ -167,7 +167,6 @@ app.delete('/api/listings/:id', async (req, res) => {
   }
 });
 
-// Endpoint to send WhatsApp message
 app.post('/api/whatsapp', async (req, res) => {
   const accountSid = process.env.ACCOUNTSID;
   const authToken = process.env.AUTHTOKEN;
