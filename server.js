@@ -144,30 +144,6 @@ app.use((err, req, res, next) => {
     }
   });
 
-  
-  // app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
-  //   const { id } = req.params;
-  //   const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
-  //   const images = req.files.map(file => `/uploads/${file.filename}`);
-
-  //   try {
-  //     const updatedListing = await Listing.findByIdAndUpdate(
-  //       id,
-  //       { title, price, city, location, propertyType, beds, extension, images, broker, email, phone, whatsapp },
-  //       { new: true }
-  //     );
-
-  //     if (!updatedListing) {
-  //       return res.status(404).json({ message: 'Listing not found' });
-  //     }
-
-  //     res.json(updatedListing);
-  //   } catch (error) {
-  //     console.error('Failed to update listing:', error);
-  //     res.status(400).json({ message: error.message });
-  //   }
-  // });
-
   app.delete('/api/listings/:id', async (req, res) => {
     const { id } = req.params;
     try {
