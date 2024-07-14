@@ -40,17 +40,17 @@ app.use(bodyParser.json());
 
 // Multer configuration for handling single file uploads
 const storage = multer.memoryStorage();
-const uploadSingle = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for files
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-}).single('image'); // Handle a single file upload with field name 'image'
+// const uploadSingle = multer({
+//   storage,
+//   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for files
+//   fileFilter: (req, file, cb) => {
+//     if (file.mimetype.startsWith('image/')) {
+//       cb(null, true);
+//     } else {
+//       cb(new Error('Only image files are allowed!'), false);
+//     }
+//   }
+// }).single('image'); // Handle a single file upload with field name 'image'
 
 // Multer configuration for handling multiple file uploads
 const uploadMultiple = multer({
