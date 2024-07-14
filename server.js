@@ -37,9 +37,9 @@ app.use(cors({
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// Multer configuration for handling file uploads
+// Multer configuration for handling single file uploads
 const storage = multer.memoryStorage();
-const upload = multer({
+const uploadSingle = multer({
   storage,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for files
   fileFilter: (req, file, cb) => {
@@ -51,8 +51,21 @@ const upload = multer({
   }
 }).single('image'); // Handle a single file upload with field name 'image'
 
+// Multer configuration for handling multiple file uploads
+const uploadMultiple = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+}).array('images', 12); // Handle multiple file uploads with field name 'images'
+
 app.post('/api/listings', (req, res) => {
-  upload(req, res, async (err) => {
+  uploadSingle(req, res, async (err) => {
     if (err) {
       console.error('Error uploading image:', err);
       return res.status(400).json({ message: err.message });
@@ -136,32 +149,39 @@ app.delete('/api/listings/:id', async (req, res) => {
   }
 });
 
-app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
-  const { id } = req.params;
-  const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
-  
-  const images = await Promise.all(req.files.map(async (file) => {
-    const blobName = `${Date.now()}-${file.originalname}`;
-    const blobResult = await put(blobName, file.buffer, { access: 'public' });
-    return blobResult.url;
-  }));
-
-  try {
-    const updatedListing = await Listing.findByIdAndUpdate(
-      id,
-      { title, price, city, location, propertyType, beds, extension, images, broker, email, phone, whatsapp },
-      { new: true }
-    );
-
-    if (!updatedListing) {
-      return res.status(404).json({ message: 'Listing not found' });
+app.put('/api/listings/:id', (req, res) => {
+  uploadMultiple(req, res, async (err) => {
+    if (err) {
+      console.error('Error uploading images:', err);
+      return res.status(400).json({ message: err.message });
     }
 
-    res.json(updatedListing);
-  } catch (error) {
-    console.error('Failed to update listing:', error);
-    res.status(400).json({ message: error.message });
-  }
+    const { id } = req.params;
+    const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
+
+    const images = await Promise.all(req.files.map(async (file) => {
+      const blobName = `${Date.now()}-${file.originalname}`;
+      const blobResult = await put(blobName, file.buffer, { access: 'public' });
+      return blobResult.url;
+    }));
+
+    try {
+      const updatedListing = await Listing.findByIdAndUpdate(
+        id,
+        { title, price, city, location, propertyType, beds, extension, images, broker, email, phone, whatsapp },
+        { new: true }
+      );
+
+      if (!updatedListing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+
+      res.json(updatedListing);
+    } catch (error) {
+      console.error('Failed to update listing:', error);
+      res.status(400).json({ message: error.message });
+    }
+  });
 });
 
 app.post('/api/whatsapp', async (req, res) => {
