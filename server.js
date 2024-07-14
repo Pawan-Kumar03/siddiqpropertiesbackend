@@ -6,8 +6,7 @@ import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import twilio from 'twilio';
 import Listing from './models/Listing.js';
-import { VercelBlobClient } from '@vercel/blob';
-import { put } from '@vercel/blob';
+import { put } from '@vercel/blob'; // Correct import statement
 dotenv.config();
 
 const app = express();
@@ -37,9 +36,6 @@ app.use(cors({
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
-
-// Initialize Vercel Blob client
-const blobClient = new VercelBlobClient(process.env.BLOB_READ_WRITE_TOKEN);
 
 // Multer configuration for handling file uploads
 const storage = multer.memoryStorage();
@@ -75,7 +71,6 @@ app.post('/api/listings', upload.single('image'), async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-
 
 // Error handler middleware
 app.use((err, req, res, next) => {
@@ -130,7 +125,7 @@ app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
   
   const images = await Promise.all(req.files.map(async (file) => {
     const blobName = `${Date.now()}-${file.originalname}`;
-    const blobResult = await blobClient.put(blobName, file.buffer);
+    const blobResult = await put(blobName, file.buffer, { access: 'public' });
     return blobResult.url;
   }));
 
