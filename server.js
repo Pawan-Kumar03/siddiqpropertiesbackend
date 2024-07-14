@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import twilio from 'twilio';
 import Listing from './models/Listing.js';
-import { Blob } from '@vercel/blob';
+import { VercelBlobClient } from '@vercel/blob';
 
 dotenv.config();
 
@@ -39,7 +39,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 // Initialize Vercel Blob client
-const blobClient = new Blob(process.env.BLOB_READ_WRITE_TOKEN);
+const blobClient = new VercelBlobClient(process.env.BLOB_READ_WRITE_TOKEN);
 
 // Multer configuration for handling file uploads
 const storage = multer.memoryStorage();
