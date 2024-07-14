@@ -36,7 +36,7 @@
   ];
 
   app.use(cors({
-    origin: '*',
+    origin: 'https://frontend-git-main-pawan-togas-projects.vercel.app',
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   }));
