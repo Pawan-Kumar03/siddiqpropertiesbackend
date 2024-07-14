@@ -7,6 +7,7 @@ import bodyParser from 'body-parser';
 import twilio from 'twilio';
 import Listing from './models/Listing.js';
 import { put } from '@vercel/blob'; // Correct import statement
+
 dotenv.config();
 
 const app = express();
@@ -29,7 +30,7 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: '*',
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
@@ -64,6 +65,7 @@ const uploadMultiple = multer({
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
+// POST request to add a new listing
 app.post('/api/listings', (req, res) => {
   uploadSingle(req, res, async (err) => {
     if (err) {
