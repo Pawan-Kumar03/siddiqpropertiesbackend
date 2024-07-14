@@ -39,37 +39,54 @@ app.use(bodyParser.json());
 
 // Multer configuration for handling file uploads
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
-
-app.post('/api/listings', upload.single('image'), async (req, res) => {
-  const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
-
-  try {
-    const imageFile = req.file;
-    const blob = await put(imageFile.originalname, imageFile.buffer, { access: 'public' });
-    const imageUrl = blob.url;
-
-    const listing = new Listing({
-      title,
-      price,
-      city,
-      location,
-      propertyType,
-      beds,
-      extension,
-      image: imageUrl,
-      broker,
-      phone,
-      email,
-      whatsapp
-    });
-
-    const savedListing = await listing.save();
-    res.status(201).json(savedListing);
-  } catch (error) {
-    console.error('Error adding listing:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for files
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
   }
+}).single('image'); // Handle a single file upload with field name 'image'
+
+app.post('/api/listings', (req, res) => {
+  upload(req, res, async (err) => {
+    if (err) {
+      console.error('Error uploading image:', err);
+      return res.status(400).json({ message: err.message });
+    }
+
+    const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
+
+    try {
+      const imageFile = req.file;
+      const blob = await put(imageFile.originalname, imageFile.buffer, { access: 'public' });
+      const imageUrl = blob.url;
+
+      const listing = new Listing({
+        title,
+        price,
+        city,
+        location,
+        propertyType,
+        beds,
+        extension,
+        image: imageUrl,
+        broker,
+        phone,
+        email,
+        whatsapp
+      });
+
+      const savedListing = await listing.save();
+      res.status(201).json(savedListing);
+    } catch (error) {
+      console.error('Error adding listing:', error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  });
 });
 
 // Error handler middleware
