@@ -38,23 +38,26 @@ app.use(cors({
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-// Multer configuration for handling single file uploads
-const storage = multer.memoryStorage();
-// const uploadSingle = multer({
-//   storage,
-//   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for files
-//   fileFilter: (req, file, cb) => {
-//     if (file.mimetype.startsWith('image/')) {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Only image files are allowed!'), false);
-//     }
-//   }
-// }).single('image'); // Handle a single file upload with field name 'image'
+// Multer configuration for handling single file upload
+const storageSingle = multer.memoryStorage();
+
+const uploadSingle = multer({
+  storage: storageSingle,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+}).single('images'); // Handle single file upload with field name 'images'
 
 // Multer configuration for handling multiple file uploads
+const storageMultiple = multer.memoryStorage();
+
 const uploadMultiple = multer({
-  storage,
+  storage: storageMultiple,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
