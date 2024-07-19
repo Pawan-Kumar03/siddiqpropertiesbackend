@@ -17,9 +17,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Connect to MongoDB
-const mongoURI = 'mongodb://localhost:27017';
+const mongoURI = process.env.MONGO_URI;
 
-mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, dbName: 'dubizzlepropertysales' })
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, dbName: 'PropertySales' })
   .then(() => {
     console.log('Database connected successfully');
     const PORT = process.env.PORT || 5000;
