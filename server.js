@@ -74,7 +74,7 @@ app.post('/api/listings', uploadSingle, async (req, res) => {
     return res.status(400).json({ message: req.fileValidationError });
   }
   
-  const { title, price, city, location, propertyType, beds, baths, extension, broker, phone, email, whatsapp, purpose, status } = req.body;
+  const { title, price, city, location, propertyType, beds, baths, extension,landlord, broker, phone, email, whatsapp, purpose, status } = req.body;
 
   if (!status || !purpose) {
     return res.status(400).json({ message: 'Status and purpose are required.' });
@@ -94,6 +94,7 @@ app.post('/api/listings', uploadSingle, async (req, res) => {
       beds,
       extension,
       image: imageUrl,
+      landlord,
       broker,
       phone,
       email,
@@ -167,7 +168,7 @@ app.put('/api/listings/:id', (req, res) => {
     }
 
     const { id } = req.params;
-    const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
+    const { title, price, city, location, propertyType, beds,landlord, baths, extension, broker, email, phone, whatsapp } = req.body;
 
     const images = await Promise.all(req.files.map(async (file) => {
       const blobName = `${Date.now()}-${file.originalname}`;
@@ -178,7 +179,7 @@ app.put('/api/listings/:id', (req, res) => {
     try {
       const updatedListing = await Listing.findByIdAndUpdate(
         id,
-        { title, price, city, location, propertyType, beds, extension, images, broker, email, phone, whatsapp },
+        { title, price, city, location, propertyType, beds, baths, landlord, extension, images, broker, email, phone, whatsapp },
         { new: true }
       );
 
