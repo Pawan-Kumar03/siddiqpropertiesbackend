@@ -179,21 +179,21 @@ app.put('/api/listings/:id', (req, res) => {
     try {
       const updatedListing = await Listing.findByIdAndUpdate(
         id,
-        { title, price, city, location, propertyType, beds, baths, landlord, extension, images, broker, email, phone, whatsapp },
+        { title, price, city, location, propertyType, beds, baths, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, extension, images, broker, email, phone, whatsapp, purpose, status },
         { new: true }
       );
-
+  
       if (!updatedListing) {
         return res.status(404).json({ message: 'Listing not found' });
       }
-
+  
       res.json(updatedListing);
     } catch (error) {
       console.error('Failed to update listing:', error);
       res.status(400).json({ message: error.message });
-    }
-  });
+    }})
 });
+
 
 app.post('/api/whatsapp', async (req, res) => {
   const accountSid = process.env.ACCOUNTSID;
