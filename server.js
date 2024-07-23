@@ -2,19 +2,15 @@ import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import twilio from 'twilio';
 import Listing from './models/Listing.js';
+import { put } from '@vercel/blob'; // Correct import statement
 
 dotenv.config();
 
 const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI;
@@ -34,111 +30,81 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
 
-// Ensure the uploads directory exists
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
-}
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
-// Serve static files from the 'uploads' directory
-app.use('/uploads', express.static(uploadDir));
+// Multer configuration for handling single file upload
+const storageSingle = multer.memoryStorage();
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
-
-const upload = multer({ storage });
-
-app.post('/api/listings', upload.single('images'), async (req, res) => {
-  const { title, price, city, location, propertyType, beds, baths, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, extension, broker, phone, email, whatsapp, purpose, status } = req.body;
-  const imageUrl = req.file ? `/uploads/${req.file.filename}` : '';
-
-  const listing = new Listing({
-    title,
-    price,
-    city,
-    location,
-    propertyType,
-    beds,
-    baths,
-    description,
-    propertyReferenceId,
-    building,
-    neighborhood,
-    landlordName,
-    reraTitleNumber,
-    reraPreRegistrationNumber,
-    agentName,
-    agentCallNumber,
-    agentEmail,
-    agentWhatsapp,
-    image: imageUrl,
-    extension,
-    broker,
-    phone,
-    email,
-    whatsapp,
-    purpose,
-    status // Add this line
-  });
-
-  try {
-    const savedListing = await listing.save();
-    res.status(201).json(savedListing);
-  } catch (error) {
-    console.error('Error adding listing:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+const uploadSingle = multer({
+  storage: storageSingle,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
   }
-});
+}).single('images'); // Handle single file upload with field name 'images'
 
-app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
-  const { id } = req.params;
-  const { 
-    title, price, city, location, propertyType, beds, baths, description, 
-    propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, 
-    reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
-    extension, broker, email, phone, whatsapp, purpose, status // Add this line
-  } = req.body;
-  const images = req.files.map(file => `/uploads/${file.filename}`);
+// Multer configuration for handling multiple file uploads
+const storageMultiple = multer.memoryStorage();
 
-  try {
-    const updatedListing = await Listing.findByIdAndUpdate(
-      id,
-      { 
-        title, price, city, location, propertyType, beds, baths, description, 
-        propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, 
-        reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
-        extension, images, broker, email, phone, whatsapp, purpose, status // Add this line
-      },
-      { new: true }
-    );
+const uploadMultiple = multer({
+  storage: storageMultiple,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+}).array('images', 12); // Handle multiple file uploads with field name 'images'
 
-    if (!updatedListing) {
-      return res.status(404).json({ message: 'Listing not found' });
+// POST request to add a new listing
+app.post('/api/listings', (req, res) => {
+  uploadSingle(req, res, async (err) => {
+    if (err) {
+      console.error('Error uploading image:', err);
+      return res.status(400).json({ message: err.message });
     }
 
-    res.json(updatedListing);
-  } catch (error) {
-    console.error('Failed to update listing:', error);
-    res.status(400).json({ message: error.message });
-  }
+    const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
+
+    try {
+      const imageFile = req.file;
+      const blob = await put(imageFile.originalname, imageFile.buffer, { access: 'public' });
+      const imageUrl = blob.url;
+
+      const listing = new Listing({
+        title,
+        price,
+        city,
+        location,
+        propertyType,
+        beds,
+        extension,
+        image: imageUrl,
+        broker,
+        phone,
+        email,
+        whatsapp
+      });
+
+      const savedListing = await listing.save();
+      res.status(201).json(savedListing);
+    } catch (error) {
+      console.error('Error adding listing:', error);
+      res.status(500).json({ message: 'Internal Server Error' });
+    }
+  });
 });
 
 // Error handler middleware
@@ -188,11 +154,45 @@ app.delete('/api/listings/:id', async (req, res) => {
   }
 });
 
-// WhatsApp API
+app.put('/api/listings/:id', (req, res) => {
+  uploadMultiple(req, res, async (err) => {
+    if (err) {
+      console.error('Error uploading images:', err);
+      return res.status(400).json({ message: err.message });
+    }
+
+    const { id } = req.params;
+    const { title, price, city, location, propertyType, beds, extension, broker, email, phone, whatsapp } = req.body;
+
+    const images = await Promise.all(req.files.map(async (file) => {
+      const blobName = `${Date.now()}-${file.originalname}`;
+      const blobResult = await put(blobName, file.buffer, { access: 'public' });
+      return blobResult.url;
+    }));
+
+    try {
+      const updatedListing = await Listing.findByIdAndUpdate(
+        id,
+        { title, price, city, location, propertyType, beds, extension, images, broker, email, phone, whatsapp },
+        { new: true }
+      );
+
+      if (!updatedListing) {
+        return res.status(404).json({ message: 'Listing not found' });
+      }
+
+      res.json(updatedListing);
+    } catch (error) {
+      console.error('Failed to update listing:', error);
+      res.status(400).json({ message: error.message });
+    }
+  });
+});
+
 app.post('/api/whatsapp', async (req, res) => {
   const accountSid = process.env.ACCOUNTSID;
   const authToken = process.env.AUTHTOKEN;
-  const client = require('twilio')(accountSid, authToken);
+  const client = new twilio(accountSid, authToken);
 
   const { property } = req.body;
 
@@ -202,24 +202,12 @@ app.post('/api/whatsapp', async (req, res) => {
     `City: ${property.city}\n` +
     `Location: ${property.location}\n` +
     `Property Type: ${property.propertyType}\n` +
-    `Beds: ${property.beds}\n` +
-    `Baths: ${property.baths}\n` +
-    `Description: ${property.description}\n` +
-    `Property Reference ID: ${property.propertyReferenceId}\n` +
-    `Building: ${property.building}\n` +
-    `Neighborhood: ${property.neighborhood}\n` +
-    `Landlord Name: ${property.landlordName}\n` +
-    `RERA Title Number: ${property.reraTitleNumber}\n` +
-    `RERA Pre-Registration Number: ${property.reraPreRegistrationNumber}\n` +
-    `Agent Name: ${property.agentName}\n` +
-    `Agent Call Number: ${property.agentCallNumber}\n` +
-    `Agent Email: ${property.agentEmail}\n` +
-    `Agent WhatsApp: ${property.agentWhatsapp}\n\n`;
+    `Beds: ${property.beds}\n\n`;
 
   try {
     await client.messages.create({
       from: process.env.TWILIO_WHATSAPP_NUM,
-      to: `whatsapp:${property.agentWhatsapp}`,
+      to: `whatsapp:${property.broker.whatsapp}`,
       body: messageBody,
     });
 
@@ -229,3 +217,4 @@ app.post('/api/whatsapp', async (req, res) => {
     res.status(500).json({ message: 'Failed to send WhatsApp message' });
   }
 });
+
