@@ -74,7 +74,7 @@ app.post('/api/listings', uploadSingle, async (req, res) => {
     return res.status(400).json({ message: req.fileValidationError });
   }
   
-  const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp, purpose, status } = req.body;
+  const { title, price, city, location, propertyType, beds, baths, extension, broker, phone, email, whatsapp, purpose, status } = req.body;
 
   if (!status || !purpose) {
     return res.status(400).json({ message: 'Status and purpose are required.' });
@@ -99,7 +99,8 @@ app.post('/api/listings', uploadSingle, async (req, res) => {
       email,
       whatsapp,
       purpose,
-      status
+      status,
+      baths
     });
 
     const savedListing = await listing.save();
