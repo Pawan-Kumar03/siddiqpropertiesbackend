@@ -69,43 +69,47 @@ const uploadMultiple = multer({
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
 // POST request to add a new listing
-app.post('/api/listings', (req, res) => {
-  uploadSingle(req, res, async (err) => {
-    if (err) {
-      console.error('Error uploading image:', err);
-      return res.status(400).json({ message: err.message });
-    }
+app.post('/api/listings', uploadSingle, async (req, res) => {
+  if (req.fileValidationError) {
+    return res.status(400).json({ message: req.fileValidationError });
+  }
+  
+  const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp, purpose, status } = req.body;
 
-    const { title, price, city, location, propertyType, beds, extension, broker, phone, email, whatsapp } = req.body;
+  if (!status || !purpose) {
+    return res.status(400).json({ message: 'Status and purpose are required.' });
+  }
 
-    try {
-      const imageFile = req.file;
-      const blob = await put(imageFile.originalname, imageFile.buffer, { access: 'public' });
-      const imageUrl = blob.url;
+  try {
+    const imageFile = req.file;
+    const blob = await put(imageFile.originalname, imageFile.buffer, { access: 'public' });
+    const imageUrl = blob.url;
 
-      const listing = new Listing({
-        title,
-        price,
-        city,
-        location,
-        propertyType,
-        beds,
-        extension,
-        image: imageUrl,
-        broker,
-        phone,
-        email,
-        whatsapp
-      });
+    const listing = new Listing({
+      title,
+      price,
+      city,
+      location,
+      propertyType,
+      beds,
+      extension,
+      image: imageUrl,
+      broker,
+      phone,
+      email,
+      whatsapp,
+      purpose,
+      status
+    });
 
-      const savedListing = await listing.save();
-      res.status(201).json(savedListing);
-    } catch (error) {
-      console.error('Error adding listing:', error);
-      res.status(500).json({ message: 'Internal Server Error' });
-    }
-  });
+    const savedListing = await listing.save();
+    res.status(201).json(savedListing);
+  } catch (error) {
+    console.error('Error adding listing:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
 });
+
 
 // Error handler middleware
 app.use((err, req, res, next) => {
