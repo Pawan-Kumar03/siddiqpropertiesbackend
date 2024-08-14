@@ -52,7 +52,6 @@ const uploadSingle = multer({
     }
   }
 }).single('images'); // Handle single file upload with field name 'images'
-
 // Multer configuration for handling multiple file uploads
 const storageMultiple = multer.memoryStorage();
 
@@ -69,21 +68,23 @@ const uploadMultiple = multer({
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
 // POST request to add a new listing
-app.post('/api/listings', upload.array('images', 12), async (req, res) => {
+app.post('/api/listings', uploadMultiple, async (req, res) => {
   if (req.fileValidationError) {
     return res.status(400).json({ message: req.fileValidationError });
   }
   
-  const { title, price, city, location, propertyType, beds, baths, extension,landlord, broker, phone, email, whatsapp, purpose, status, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp} = req.body;
+  const { title, price, city, location, propertyType, beds, baths, extension, landlord, broker, phone, email, whatsapp, purpose, status, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp } = req.body;
 
   if (!status || !purpose) {
     return res.status(400).json({ message: 'Status and purpose are required.' });
   }
 
   try {
-    const imageFile = req.file;
-    const blob = await put(imageFile.originalname, imageFile.buffer, { access: 'public' });
-    const imageUrl = blob.url;
+    const images = req.files ? await Promise.all(req.files.map(async (file) => {
+      const blobName = `${Date.now()}-${file.originalname}`;
+      const blobResult = await put(blobName, file.buffer, { access: 'public' });
+      return blobResult.url;
+    })) : [];
 
     const listing = new Listing({
       title,
@@ -104,7 +105,7 @@ app.post('/api/listings', upload.array('images', 12), async (req, res) => {
       agentCallNumber,
       agentEmail,
       agentWhatsapp,
-      image: imageUrl,
+      images,
       extension,
       broker,
       phone,
@@ -114,12 +115,40 @@ app.post('/api/listings', upload.array('images', 12), async (req, res) => {
       status
     });
 
-
     const savedListing = await listing.save();
     res.status(201).json(savedListing);
   } catch (error) {
     console.error('Error adding listing:', error);
     res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
+// PUT request to update a listing
+app.put('/api/listings/:id', uploadMultiple, async (req, res) => {
+  const { id } = req.params;
+  const { title, price, city, location, propertyType, beds, landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status } = req.body;
+
+  try {
+    const images = req.files ? await Promise.all(req.files.map(async (file) => {
+      const blobName = `${Date.now()}-${file.originalname}`;
+      const blobResult = await put(blobName, file.buffer, { access: 'public' });
+      return blobResult.url;
+    })) : [];
+
+    const updatedListing = await Listing.findByIdAndUpdate(
+      id,
+      { title, price, city, location, propertyType, beds, landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status, images },
+      { new: true }
+    );
+
+    if (!updatedListing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    res.json(updatedListing);
+  } catch (error) {
+    console.error('Failed to update listing:', error);
+    res.status(400).json({ message: error.message });
   }
 });
 
@@ -169,41 +198,6 @@ app.delete('/api/listings/:id', async (req, res) => {
     console.error('Failed to delete listing:', error);
     res.status(400).json({ message: error.message });
   }
-});
-
-app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
- 
-  uploadMultiple(req, res, async (err) => {
-    if (err) {
-      console.error('Error uploading images:', err);
-      return res.status(400).json({ message: err.message });
-    }
-
-    const { id } = req.params;
-    const { title, price, city, location, propertyType, beds,landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status} = req.body;
-
-    const images = await Promise.all(req.files.map(async (file) => {
-      const blobName = `${Date.now()}-${file.originalname}`;
-      const blobResult = await put(blobName, file.buffer, { access: 'public' });
-      return blobResult.url;
-    }));
-
-    try {
-      const updatedListing = await Listing.findByIdAndUpdate(
-        id,
-        { title, price, city, location, propertyType, beds,landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status},
-        { new: true }
-      );
-  
-      if (!updatedListing) {
-        return res.status(404).json({ message: 'Listing not found' });
-      }
-  
-      res.json(updatedListing);
-    } catch (error) {
-      console.error('Failed to update listing:', error);
-      res.status(400).json({ message: error.message });
-    }})
 });
 
 
