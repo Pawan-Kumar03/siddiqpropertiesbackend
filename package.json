@@ -159,6 +159,6 @@
     "start": "nodemon server.js"
   },
   "engines": {
-    "node": "16.x"
+    "node": "20.x"
   }
 }
