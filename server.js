@@ -69,7 +69,7 @@ const uploadMultiple = multer({
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
 // POST request to add a new listing
-app.post('/api/listings', uploadSingle, async (req, res) => {
+app.post('/api/listings', upload.array('images', 12), async (req, res) => {
   if (req.fileValidationError) {
     return res.status(400).json({ message: req.fileValidationError });
   }
@@ -171,7 +171,8 @@ app.delete('/api/listings/:id', async (req, res) => {
   }
 });
 
-app.put('/api/listings/:id', (req, res) => {
+app.put('/api/listings/:id', upload.array('images', 12), async (req, res) => {
+ 
   uploadMultiple(req, res, async (err) => {
     if (err) {
       console.error('Error uploading images:', err);
