@@ -66,7 +66,61 @@ const uploadMultiple = multer({
     }
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
+app.post('/api/listings', upload.single('images'), async (req, res) => {
+  if (req.fileValidationError) {
+    return res.status(400).json({ message: req.fileValidationError });
+  }
+  
+  const { title, price, city, location, propertyType, beds, baths, extension, landlord, broker, phone, email, whatsapp, purpose, status, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp } = req.body;
 
+  if (!status || !purpose) {
+    return res.status(400).json({ message: 'Status and purpose are required.' });
+  }
+
+  try {
+    const images = req.files ? await Promise.all(req.files.map(async (file) => {
+      const blobName = `${Date.now()}-${file.originalname}`;
+      const blobResult = await put(blobName, file.buffer, { access: 'public' });
+      return blobResult.url;
+    })) : [];
+
+    const listing = new Listing({
+      title,
+      price,
+      city,
+      location,
+      propertyType,
+      beds,
+      baths,
+      description,
+      propertyReferenceId,
+      building,
+      neighborhood,
+      landlordName,
+      reraTitleNumber,
+      reraPreRegistrationNumber,
+      agentName,
+      agentCallNumber,
+      agentEmail,
+      agentWhatsapp,
+      images,
+      extension,
+      broker,
+      phone,
+      email,
+      whatsapp,
+      purpose,
+      status
+    });
+
+    const savedListing = await listing.save();
+    res.status(201).json(savedListing);
+  } catch (error) {
+    console.error('Error adding listing:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+  
 // POST request to add a new listing
 app.post('/api/listings', uploadMultiple, async (req, res) => {
   if (req.fileValidationError) {
