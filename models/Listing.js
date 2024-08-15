@@ -1,7 +1,8 @@
 import mongoose from 'mongoose';
 
 const ListingSchema = new mongoose.Schema({
-  images: { type: [String], required: true },
+  image: { type: String, default: '' },  // For single image
+  images: { type: [String], default: [] },  // For multiple images
   title: { type: String, required: true },
   price: { type: String, required: true },
   city: { type: String, required: true },

@@ -68,7 +68,7 @@ const uploadMultiple = multer({
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
 // POST request to add a new listing
-app.post('/api/listings', uploadMultiple, async (req, res) => {
+app.post('/api/listings', upload, async (req, res) => {
   if (req.fileValidationError) {
     return res.status(400).json({ message: req.fileValidationError });
   }
@@ -105,7 +105,8 @@ app.post('/api/listings', uploadMultiple, async (req, res) => {
       agentCallNumber,
       agentEmail,
       agentWhatsapp,
-      images,
+      image: images.length === 1 ? images[0] : '', // Store single image
+      images: images.length > 1 ? images : [], // Store multiple images
       extension,
       broker,
       phone,
@@ -124,7 +125,7 @@ app.post('/api/listings', uploadMultiple, async (req, res) => {
 });
 
 // PUT request to update a listing
-app.put('/api/listings/:id', uploadMultiple, async (req, res) => {
+app.put('/api/listings/:id', upload, async (req, res) => {
   const { id } = req.params;
   const { title, price, city, location, propertyType, beds, landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status } = req.body;
 
@@ -137,7 +138,11 @@ app.put('/api/listings/:id', uploadMultiple, async (req, res) => {
 
     const updatedListing = await Listing.findByIdAndUpdate(
       id,
-      { title, price, city, location, propertyType, beds, landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status, images },
+      {
+        title, price, city, location, propertyType, beds, landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status,
+        image: images.length === 1 ? images[0] : '', // Update single image
+        images: images.length > 1 ? images : [] // Update multiple images
+      },
       { new: true }
     );
 
@@ -151,6 +156,7 @@ app.put('/api/listings/:id', uploadMultiple, async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
 
 
 // Error handler middleware
