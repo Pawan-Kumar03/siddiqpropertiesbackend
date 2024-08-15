@@ -139,28 +139,41 @@ app.post('/api/listings', upload, async (req, res) => {
 // PUT request to update a listing
 app.put('/api/listings/:id', upload, async (req, res) => {
   const { id } = req.params;
-  const { title, price, city, location, propertyType, beds, landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status } = req.body;
+  const {
+    title, price, city, location, propertyType, beds, landlord, baths, extension, broker,
+    email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName,
+    reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, 
+    purpose, status
+  } = req.body;
 
   try {
-    const images = req.files ? await Promise.all(req.files.map(async (file) => {
+    // Find the existing listing to retain existing images
+    const existingListing = await Listing.findById(id);
+    if (!existingListing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    // If new images are uploaded, append them to existing images; otherwise, retain the current images
+    const newImages = req.files ? await Promise.all(req.files.map(async (file) => {
       const blobName = `${Date.now()}-${file.originalname}`;
       const blobResult = await put(blobName, file.buffer, { access: 'public' });
       return blobResult.url;
     })) : [];
 
+    const images = newImages.length > 0 ? [...existingListing.images, ...newImages] : existingListing.images;
+
+    // Update the listing with the provided fields and updated images
     const updatedListing = await Listing.findByIdAndUpdate(
       id,
       {
-        title, price, city, location, propertyType, beds, landlord, baths, extension, broker, email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, purpose, status,
-        image: images.length === 1 ? images[0] : '', // Update single image
-        images: images.length > 1 ? images : [] // Update multiple images
+        title, price, city, location, propertyType, beds, landlord, baths, extension, broker,
+        email, phone, whatsapp, description, propertyReferenceId, building, neighborhood,
+        landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber,
+        agentEmail, agentWhatsapp, purpose, status,
+        images
       },
       { new: true }
     );
-
-    if (!updatedListing) {
-      return res.status(404).json({ message: 'Listing not found' });
-    }
 
     res.json(updatedListing);
   } catch (error) {
@@ -168,6 +181,7 @@ app.put('/api/listings/:id', upload, async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
 
 
 
