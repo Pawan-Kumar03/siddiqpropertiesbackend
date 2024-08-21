@@ -211,7 +211,6 @@ app.get('/api/locations/:city', async (req, res) => {
       { $group: { _id: "$location", count: { $sum: 1 } } },
       { $project: { location: "$_id", count: 1, _id: 0 } }
     ]);
-
     res.json(locations);
   } catch (error) {
     console.error('Error fetching locations:', error);
