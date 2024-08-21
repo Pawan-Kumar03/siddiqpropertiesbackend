@@ -201,22 +201,33 @@ app.get('/api/listings', async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch listings' });
   }
 });
-// Define a new route to get property counts by location
-app.get('/api/locations/:city', async (req, res) => {
-  const city = req.params.city;
-
+app.get('/api/listings/:city', async (req, res) => {
+  const { city } = req.params;
   try {
-    const locations = await Listing.aggregate([
-      { $match: { city: city } },
-      { $group: { _id: "$location", count: { $sum: 1 } } },
-      { $project: { location: "$_id", count: 1, _id: 0 } }
-    ]);
-    res.json(locations);
+      const listings = await Listing.find({ city }); // Adjust query as needed
+      res.json(listings.length ? listings : []);
   } catch (error) {
-    console.error('Error fetching locations:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+      console.error('Error fetching listings:', error);
+      res.status(500).json({ message: 'Server Error' });
   }
 });
+
+// // Define a new route to get property counts by location
+// app.get('/api/locations/:city', async (req, res) => {
+//   const city = req.params.city;
+
+//   try {
+//     const locations = await Listing.aggregate([
+//       { $match: { city: city } },
+//       { $group: { _id: "$location", count: { $sum: 1 } } },
+//       { $project: { location: "$_id", count: 1, _id: 0 } }
+//     ]);
+//     res.json(locations);
+//   } catch (error) {
+//     console.error('Error fetching locations:', error);
+//     res.status(500).json({ message: 'Internal Server Error' });
+//   }
+// });
 
 
 app.get('/api/listings/:id', async (req, res) => {
