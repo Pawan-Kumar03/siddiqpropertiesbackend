@@ -192,15 +192,30 @@ app.use((err, req, res, next) => {
 });
 
 // Define API endpoints
+// app.get('/api/listings', async (req, res) => {
+//   try {
+//     const listings = await Listing.find();
+//     res.json(listings);
+//   } catch (error) {
+//     console.error('Error fetching listings:', error);
+//     res.status(500).json({ message: 'Failed to fetch listings' });
+//   }
+// });
 app.get('/api/listings', async (req, res) => {
+  const { city, location } = req.query;
   try {
-    const listings = await Listing.find();
-    res.json(listings);
+    const query = {};
+    if (city) query.city = city;
+    if (location) query.location = location;
+
+    const listings = await Listing.find(query);
+    res.json(listings.length ? listings : []);
   } catch (error) {
     console.error('Error fetching listings:', error);
-    res.status(500).json({ message: 'Failed to fetch listings' });
+    res.status(500).json({ message: 'Server Error' });
   }
 });
+
 app.get('/api/listings/:city', async (req, res) => {
   const { city } = req.params;
   try {
