@@ -190,17 +190,6 @@ app.use((err, req, res, next) => {
   console.error('Error:', err.message);
   res.status(500).json({ message: 'Internal Server Error' });
 });
-
-// Define API endpoints
-// app.get('/api/listings', async (req, res) => {
-//   try {
-//     const listings = await Listing.find();
-//     res.json(listings);
-//   } catch (error) {
-//     console.error('Error fetching listings:', error);
-//     res.status(500).json({ message: 'Failed to fetch listings' });
-//   }
-// });
 app.get('/api/listings', async (req, res) => {
   const { city, location } = req.query;
   try {
