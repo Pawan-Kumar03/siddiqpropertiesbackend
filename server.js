@@ -46,6 +46,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
+
 // app.use(cors({
 //   origin: allowedOrigins,
 //   methods: ["GET", "POST", "PUT", "DELETE"],
@@ -153,9 +154,11 @@ app.post('/api/login', [
 
     res.json({ token });
   } catch (error) {
+    console.error('Login error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 app.post('/api/listings', auth, upload, async (req, res) => {
   const {
