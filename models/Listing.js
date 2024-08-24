@@ -28,6 +28,7 @@ const ListingSchema = new mongoose.Schema({
   whatsapp: { type: String, required: true },
   purpose: { type: String, required: true }, 
   status: { type: String, required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } 
 }, { collection: 'listings' });
 
 const Listing = mongoose.model('Listing', ListingSchema);

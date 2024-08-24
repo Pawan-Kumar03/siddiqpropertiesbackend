@@ -6,7 +6,12 @@ import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
 import twilio from 'twilio';
 import Listing from './models/Listing.js';
-import { put } from '@vercel/blob'; // Correct import statement
+import { put } from '@vercel/blob'; 
+import User from './models/User.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { body, validationResult } from 'express-validator';
+import auth from './middleware/auth.js';
 
 dotenv.config();
 
@@ -28,12 +33,24 @@ const allowedOrigins = [
   'https://frontend-git-main-pawan-togas-projects.vercel.app',
   'http://localhost:5173'
 ];
-
 app.use(cors({
-  origin: allowedOrigins,
+  origin: function(origin, callback){
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
+// app.use(cors({
+//   origin: allowedOrigins,
+//   methods: ["GET", "POST", "PUT", "DELETE"],
+//   credentials: true,
+// }));
 
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
@@ -79,17 +96,74 @@ const uploadMultiple = multer({
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
-// POST request to add a new listing
-app.post('/api/listings', upload, async (req, res) => {
-  if (req.fileValidationError) {
-    return res.status(400).json({ message: req.fileValidationError });
+app.post('/api/signup', [
+  body('name').not().isEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
-  
-  const { title, price, city, location, propertyType, beds, baths, extension, landlord, broker, phone, email, whatsapp, purpose, status, description, propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp } = req.body;
 
-  if (!status || !purpose) {
-    return res.status(400).json({ message: 'Status and purpose are required.' });
+  const { name, email, password } = req.body;
+
+  try {
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    user = new User({ name, email, password });
+    await user.save();
+
+    const payload = { userId: user._id };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.status(201).json({ token });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
   }
+});
+
+app.post('/api/login', [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('password').exists().withMessage('Password is required')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    const payload = { userId: user._id };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.json({ token });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/listings', auth, upload, async (req, res) => {
+  const {
+    title, price, city, location, propertyType, beds, baths, description,
+    propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber,
+    reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
+    extension, broker, phone, email, whatsapp, purpose, status
+  } = req.body;
 
   try {
     const images = req.files ? await Promise.all(req.files.map(async (file) => {
@@ -99,88 +173,66 @@ app.post('/api/listings', upload, async (req, res) => {
     })) : [];
 
     const listing = new Listing({
-      title,
-      price,
-      city,
-      location,
-      propertyType,
-      beds,
-      baths,
-      description,
-      propertyReferenceId,
-      building,
-      neighborhood,
-      landlordName,
-      reraTitleNumber,
-      reraPreRegistrationNumber,
-      agentName,
-      agentCallNumber,
-      agentEmail,
-      agentWhatsapp,
-      image: images.length === 1 ? images[0] : '', // Store single image
-      images: images.length > 1 ? images : [], // Store multiple images
-      extension,
-      broker,
-      phone,
-      email,
-      whatsapp,
-      purpose,
-      status
+      title, price, city, location, propertyType, beds, baths, description,
+      propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber,
+      reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
+      image: images.length === 1 ? images[0] : '', images: images.length > 1 ? images : [],
+      extension, broker, phone, email, whatsapp, purpose, status,
+      user: req.user._id // Associate the listing with the logged-in user
     });
 
     const savedListing = await listing.save();
+    req.user.listings.push(savedListing._id);
+    await req.user.save();
     res.status(201).json(savedListing);
   } catch (error) {
-    console.error('Error adding listing:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
-// PUT request to update a listing
-app.put('/api/listings/:id', upload, async (req, res) => {
+app.put('/api/listings/:id', auth, async (req, res) => {
   const { id } = req.params;
-  const {
-    title, price, city, location, propertyType, beds, landlord, baths, extension, broker,
-    email, phone, whatsapp, description, propertyReferenceId, building, neighborhood, landlordName,
-    reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp, 
-    purpose, status
-  } = req.body;
 
   try {
-    // Find the existing listing to retain existing images
-    const existingListing = await Listing.findById(id);
-    if (!existingListing) {
+    const listing = await Listing.findById(id);
+    if (!listing) {
       return res.status(404).json({ message: 'Listing not found' });
     }
 
-    // If new images are uploaded, append them to existing images; otherwise, retain the current images
-    const newImages = req.files ? await Promise.all(req.files.map(async (file) => {
-      const blobName = `${Date.now()}-${file.originalname}`;
-      const blobResult = await put(blobName, file.buffer, { access: 'public' });
-      return blobResult.url;
-    })) : [];
+    // Ensure the logged-in user owns the listing
+    if (listing.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
 
-    const images = newImages.length > 0 ? [...existingListing.images, ...newImages] : existingListing.images;
-
-    // Update the listing with the provided fields and updated images
-    const updatedListing = await Listing.findByIdAndUpdate(
-      id,
-      {
-        title, price, city, location, propertyType, beds, landlord, baths, extension, broker,
-        email, phone, whatsapp, description, propertyReferenceId, building, neighborhood,
-        landlordName, reraTitleNumber, reraPreRegistrationNumber, agentName, agentCallNumber,
-        agentEmail, agentWhatsapp, purpose, status,
-        images
-      },
-      { new: true }
-    );
-
+    // Update the listing with new data
+    const updatedListing = await Listing.findByIdAndUpdate(id, req.body, { new: true });
     res.json(updatedListing);
   } catch (error) {
-    console.error('Failed to update listing:', error);
-    res.status(400).json({ message: error.message });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+app.delete('/api/listings/:id', auth, async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const listing = await Listing.findById(id);
+    if (!listing) {
+      return res.status(404).json({ message: 'Listing not found' });
+    }
+
+    // Ensure the logged-in user owns the listing
+    if (listing.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+
+    await listing.remove();
+    res.json({ message: 'Listing removed' });
+  } catch (error) {
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
 
 
 
@@ -233,7 +285,7 @@ app.get('/api/listings/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/listings/:id', async (req, res) => {
+app.delete('/api/listings/:id',auth, async (req, res) => {
   const { id } = req.params;
   try {
     const deletedListing = await Listing.findByIdAndDelete(id);
