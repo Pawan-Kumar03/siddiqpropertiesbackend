@@ -167,6 +167,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
     extension, broker, phone, email, whatsapp, purpose, status
   } = req.body;
+  console.log('Request body:', req.body);
 
   try {
     const images = req.files ? await Promise.all(req.files.map(async (file) => {
@@ -189,6 +190,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     await req.user.save();
     res.status(201).json(savedListing);
   } catch (error) {
+    console.error('Error creating listing:', error);  
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
