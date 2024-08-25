@@ -152,13 +152,16 @@ app.post('/api/login', [
     const payload = { userId: user._id };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.json({ token });
+    // Include username in the response
+    res.json({
+      token,
+      username: user.name // Send the username with the token
+    });
   } catch (error) {
     console.error('Login error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 app.post('/api/listings', auth, upload, async (req, res) => {
   const {
