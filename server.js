@@ -162,7 +162,19 @@ app.post('/api/login', [
     res.status(500).json({ message: 'Server error' });
   }
 });
-
+// Add this route to your Express server
+app.get('/api/user-listings', auth, async (req, res) => {
+  try {
+      const user = await User.findById(req.user._id).populate('listings'); // Populate listings
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+      res.json(user.listings);
+  } catch (error) {
+      console.error('Error fetching user listings:', error);
+      res.status(500).json({ message: 'Server Error' });
+  }
+});
 app.post('/api/listings', auth, upload, async (req, res) => {
   const {
     title, price, city, location, propertyType, beds, baths, description,
