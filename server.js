@@ -168,7 +168,10 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     extension, broker, phone, email, whatsapp, purpose, status
   } = req.body;
   console.log('Request body:', req.body);
-
+// Check if req.user.listings is defined and an array
+if (!req.user.listings) {
+  req.user.listings = [];  // Initialize if undefined
+}
   try {
     const images = req.files ? await Promise.all(req.files.map(async (file) => {
       const blobName = `${Date.now()}-${file.originalname}`;

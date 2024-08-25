@@ -4,7 +4,8 @@ import bcrypt from 'bcryptjs';
 const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+  listings: { type: [mongoose.Schema.Types.ObjectId], ref: 'Listing', default: [] },
 });
 
 // Password hashing and comparison
