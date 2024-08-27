@@ -154,7 +154,8 @@ app.post('/api/login', [
     // Include username in the response
     res.json({
       token,
-      username: user.name // Send the username with the token
+      userId: user._id,
+      username: user.name 
     });
   } catch (error) {
     console.error('Login error:', error.message);
