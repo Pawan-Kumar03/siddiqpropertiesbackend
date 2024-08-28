@@ -34,6 +34,7 @@ const auth = async (req, res, next) => {
   }
 };
 
+
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI;
 
@@ -53,7 +54,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback){
-    // Allow requests with no origin (like mobile apps or curl requests)
     if(!origin) return callback(null, true);
     if(allowedOrigins.indexOf(origin) === -1){
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -344,7 +344,7 @@ app.get('/api/listings/:city', async (req, res) => {
 app.get('/api/listings/:id', async (req, res) => {
   console.log('Received ID:', req.params.id); // Debugging line
   try {
-      const property = await Listing.findById(req.params._id);
+      const property = await Listing.findById(req.params.id);
       console.log('Queried Property:', property); // Debugging line
       if (!property || property.length === 0) {
           return res.status(404).json({ message: 'Property not found' });
