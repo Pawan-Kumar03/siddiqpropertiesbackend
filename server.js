@@ -311,27 +311,42 @@ app.get('/api/listings/:city', async (req, res) => {
   }
 });
 
-
 app.get('/api/listings/:id', async (req, res) => {
-  const { id } = req.params;
-  
+  console.log('Received ID:', req.params.id); // Debugging line
   try {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ message: 'Invalid listing ID' });
-    }
-    
-    const listing = await Listing.findById(id);
-    
-    if (!listing) {
-      return res.status(404).json({ message: 'Listing not found' });
-    }
-    
-    res.json(listing);
+      const property = await Listing.findById(req.params.id);
+      console.log('Queried Property:', property); // Debugging line
+      if (!property) {
+          return res.status(404).json({ message: 'Property not found' });
+      }
+      res.json(property);
   } catch (error) {
-    console.error('Error fetching listing:', error);
-    res.status(500).json({ message: 'Failed to fetch listing' });
+      console.error('Error fetching property:', error); // Debugging line
+      res.status(500).json({ message: 'Server error' });
   }
 });
+
+
+// app.get('/api/listings/:id', async (req, res) => {
+//   const { id } = req.params;
+  
+//   try {
+//     if (!mongoose.Types.ObjectId.isValid(id)) {
+//       return res.status(400).json({ message: 'Invalid listing ID' });
+//     }
+    
+//     const listing = await Listing.findById(id);
+    
+//     if (!listing) {
+//       return res.status(404).json({ message: 'Listing not found' });
+//     }
+    
+//     res.json(listing);
+//   } catch (error) {
+//     console.error('Error fetching listing:', error);
+//     res.status(500).json({ message: 'Failed to fetch listing' });
+//   }
+// });
 
 
 app.delete('/api/listings/:id',auth, async (req, res) => {
