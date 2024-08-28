@@ -154,7 +154,7 @@ app.post('/api/login', [
     // Include username in the response
     res.json({
       token,
-      userId: user._id,
+       userId: user._id,
       username: user.name 
     });
   } catch (error) {
@@ -313,20 +313,26 @@ app.get('/api/listings/:city', async (req, res) => {
 
 
 app.get('/api/listings/:id', async (req, res) => {
+  const { id } = req.params;
+  
   try {
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: 'Invalid listing ID' });
     }
-    const listing = await Listing.findById(req.params.id);
+    
+    const listing = await Listing.findById(id);
+    
     if (!listing) {
       return res.status(404).json({ message: 'Listing not found' });
     }
+    
     res.json(listing);
   } catch (error) {
     console.error('Error fetching listing:', error);
     res.status(500).json({ message: 'Failed to fetch listing' });
   }
 });
+
 
 app.delete('/api/listings/:id',auth, async (req, res) => {
   const { id } = req.params;
