@@ -314,7 +314,7 @@ app.get('/api/listings/:city', async (req, res) => {
 app.get('/api/listings/:id', async (req, res) => {
   console.log('Received ID:', req.params.id); // Debugging line
   try {
-      const property = await Listing.findById(req.params.id);
+      const property = await Listing.findById(req.params._id);
       console.log('Queried Property:', property); // Debugging line
       if (!property) {
           return res.status(404).json({ message: 'Property not found' });
