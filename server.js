@@ -319,7 +319,9 @@ app.get('/api/listings/:id', async (req, res) => {
       if (!property) {
           return res.status(404).json({ message: 'Property not found' });
       }
-      res.json(property);
+      res.json(`{
+        value:id
+        }`);
   } catch (error) {
       console.error('Error fetching property:', error); // Debugging line
       res.status(500).json({ message: 'Server error' });
