@@ -316,12 +316,10 @@ app.get('/api/listings/:id', async (req, res) => {
   try {
       const property = await Listing.findById(req.params._id);
       console.log('Queried Property:', property); // Debugging line
-      if (!property) {
+      if (!property || property.length === 0) {
           return res.status(404).json({ message: 'Property not found' });
       }
-      res.json(`{
-        value:id
-        }`);
+      res.json(property);
   } catch (error) {
       console.error('Error fetching property:', error); // Debugging line
       res.status(500).json({ message: 'Server error' });
