@@ -102,7 +102,7 @@ const upload = multer({
     }
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
-app.use('/api/listings', auth);
+// app.use('/api/listings', auth);
 const uploadMultiple = multer({
   storage: storageMultiple,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
