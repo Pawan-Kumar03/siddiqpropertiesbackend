@@ -83,7 +83,7 @@ const upload = multer({
     }
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
-
+app.use('/api/listings', auth);
 const uploadMultiple = multer({
   storage: storageMultiple,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
@@ -232,28 +232,57 @@ if (!req.user.listings) {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-
-app.put('/api/listings/:id', auth, async (req, res) => {
+// Update the PUT route to handle multipart form data
+app.put('/api/listings/:id', auth, uploadMultiple, async (req, res) => {
   const { id } = req.params;
 
   try {
-    const listing = await Listing.findById(id);
-    if (!listing) {
-      return res.status(404).json({ message: 'Listing not found' });
-    }
+      const listing = await Listing.findById(id);
+      if (!listing) {
+          return res.status(404).json({ message: 'Listing not found' });
+      }
 
-    // Ensure the logged-in user owns the listing
-    if (listing.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
+      // Ensure the logged-in user owns the listing
+      if (listing.user.toString() !== req.user._id.toString()) {
+          return res.status(403).json({ message: 'Not authorized' });
+      }
 
-    // Update the listing with new data
-    const updatedListing = await Listing.findByIdAndUpdate(id, req.body, { new: true });
-    res.json(updatedListing);
+      // Handle image updates
+      const images = req.files ? await Promise.all(req.files.map(async (file) => {
+          const blobName = `${Date.now()}-${file.originalname}`;
+          const blobResult = await put(blobName, file.buffer, { access: 'public' });
+          return blobResult.url;
+      })) : [];
+
+      // Update the listing with new data
+      const updatedData = { ...req.body, images: images.length > 0 ? images : listing.images };
+      const updatedListing = await Listing.findByIdAndUpdate(id, updatedData, { new: true });
+      res.json(updatedListing);
   } catch (error) {
-    res.status(500).json({ message: 'Internal Server Error' });
+      res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+// app.put('/api/listings/:id', auth, async (req, res) => {
+//   const { id } = req.params;
+
+//   try {
+//     const listing = await Listing.findById(id);
+//     if (!listing) {
+//       return res.status(404).json({ message: 'Listing not found' });
+//     }
+
+//     // Ensure the logged-in user owns the listing
+//     if (listing.user.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ message: 'Not authorized' });
+//     }
+
+//     // Update the listing with new data
+//     const updatedListing = await Listing.findByIdAndUpdate(id, req.body, { new: true });
+//     res.json(updatedListing);
+//   } catch (error) {
+//     res.status(500).json({ message: 'Internal Server Error' });
+//   }
+// });
 
 app.delete('/api/listings/:id', auth, async (req, res) => {
   const { id } = req.params;
