@@ -15,6 +15,24 @@ import { body, validationResult } from 'express-validator';
 dotenv.config();
 
 const app = express();
+// Authentication Middleware
+const auth = async (req, res, next) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) {
+    return res.status(401).json({ message: 'No token, authorization denied' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = await User.findById(decoded.userId).select('-password');
+    if (!req.user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Token is not valid', error: error.message });
+  }
+};
 
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI;
@@ -32,6 +50,7 @@ const allowedOrigins = [
   'https://frontend-git-main-pawan-togas-projects.vercel.app',
   'http://localhost:5173'
 ];
+
 app.use(cors({
   origin: function(origin, callback){
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -163,24 +182,6 @@ app.post('/api/login', [
   }
 });
 
-// Authentication Middleware
-const auth = async (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.userId).select('-password');
-    if (!req.user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    next();
-  } catch (error) {
-    res.status(401).json({ message: 'Token is not valid', error: error.message });
-  }
-};
 
 // Add this route to your Express server
 app.get('/api/user-listings', auth, async (req, res) => {
