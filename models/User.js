@@ -6,6 +6,9 @@ const UserSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   listings: { type: [mongoose.Schema.Types.ObjectId], ref: 'Listing', default: [] },
+  isVerified: { type: Boolean, default: false }, 
+  verificationRequested: { type: Boolean, default: false } 
+
 });
 
 // Password hashing and comparison

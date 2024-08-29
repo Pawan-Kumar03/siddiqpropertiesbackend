@@ -208,6 +208,40 @@ app.put('/api/profile', auth, async (req, res) => {
   }
 });
 
+// Verify user
+app.post('/api/verify', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Set the user as verified
+    user.isVerified = true;
+    await user.save();
+
+    res.json({ message: 'Verification successful' });
+  } catch (error) {
+    console.error('Verification error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Check verification status
+app.get('/api/verify/status', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ isVerified: user.isVerified });
+  } catch (error) {
+    console.error('Verification status error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 // Add this route to your Express server
 app.get('/api/user-listings', auth, async (req, res) => {
