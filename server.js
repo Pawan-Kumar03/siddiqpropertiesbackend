@@ -303,10 +303,7 @@ app.put('/api/listings/:id', auth, uploadMultiple, async (req, res) => {
           return res.status(404).json({ message: 'Listing not found' });
       }
 
-      // Ensure the logged-in user owns the listing
-      if (listing.user.toString() !== req.user._id.toString()) {
-          return res.status(403).json({ message: 'Not authorized' });
-      }
+
 
       // Handle image updates
       const images = req.files ? await Promise.all(req.files.map(async (file) => {
@@ -323,28 +320,6 @@ app.put('/api/listings/:id', auth, uploadMultiple, async (req, res) => {
       res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-// app.put('/api/listings/:id', auth, async (req, res) => {
-//   const { id } = req.params;
-
-//   try {
-//     const listing = await Listing.findById(id);
-//     if (!listing) {
-//       return res.status(404).json({ message: 'Listing not found' });
-//     }
-
-//     // Ensure the logged-in user owns the listing
-//     if (listing.user.toString() !== req.user._id.toString()) {
-//       return res.status(403).json({ message: 'Not authorized' });
-//     }
-
-//     // Update the listing with new data
-//     const updatedListing = await Listing.findByIdAndUpdate(id, req.body, { new: true });
-//     res.json(updatedListing);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Internal Server Error' });
-//   }
-// });
-
 app.delete('/api/listings/:id', auth, async (req, res) => {
   const { id } = req.params;
 
@@ -354,17 +329,15 @@ app.delete('/api/listings/:id', auth, async (req, res) => {
       return res.status(404).json({ message: 'Listing not found' });
     }
 
-    // Ensure the logged-in user owns the listing
-    if (listing.user.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
 
     await listing.remove();
     res.json({ message: 'Listing removed' });
   } catch (error) {
+    console.error("Error deleting listing:", error); // Log the error
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 
 
