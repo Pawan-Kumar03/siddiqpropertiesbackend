@@ -174,7 +174,8 @@ app.post('/api/login', [
     res.json({
       token,
        userId: user._id,
-      username: user.name 
+      username: user.name ,
+      email: user.email
     });
   } catch (error) {
     console.error('Login error:', error.message);
