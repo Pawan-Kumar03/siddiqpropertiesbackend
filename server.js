@@ -330,7 +330,7 @@ app.delete('/api/listings/:id', auth, async (req, res) => {
     }
 
 
-    await listing.remove();
+    await Listing.findByIdAndDelete(id); 
     res.json({ message: 'Listing removed' });
   } catch (error) {
     console.error("Error deleting listing:", error); // Log the error
