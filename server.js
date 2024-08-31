@@ -390,26 +390,29 @@ app.get('/api/listings/:id', async (req, res) => {
 });
 
 
-// app.get('/api/listings/:id', async (req, res) => {
-//   const { id } = req.params;
-  
-//   try {
-//     if (!mongoose.Types.ObjectId.isValid(id)) {
-//       return res.status(400).json({ message: 'Invalid listing ID' });
-//     }
-    
-//     const listing = await Listing.findById(id);
-    
-//     if (!listing) {
-//       return res.status(404).json({ message: 'Listing not found' });
-//     }
-    
-//     res.json(listing);
-//   } catch (error) {
-//     console.error('Error fetching listing:', error);
-//     res.status(500).json({ message: 'Failed to fetch listing' });
-//   }
-// });
+// Route to get listings based on the city
+app.get('/api/properties', async (req, res) => {
+  try {
+    const { city } = req.query;
+
+    // Build the query object
+    const query = {};
+    if (city) {
+      query.city = city;
+    }
+
+    const listings = await Listing.find(query);
+
+    if (!listings || listings.length === 0) {
+      return res.status(404).json({ message: 'No listings found for this city' });
+    }
+
+    res.json(listings);
+  } catch (error) {
+    console.error('Error fetching listings:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 
 app.delete('/api/listings/:id',auth, async (req, res) => {
