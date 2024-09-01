@@ -7,8 +7,11 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   listings: { type: [mongoose.Schema.Types.ObjectId], ref: 'Listing', default: [] },
   isVerified: { type: Boolean, default: false }, 
-  verificationRequested: { type: Boolean, default: false } 
-
+  verificationRequested: { type: Boolean, default: false } ,
+  verificationToken: String,
+  verificationTokenExpires: Date,
+  authToken: String, 
+  authTokenExpires: Date 
 });
 
 // Password hashing and comparison

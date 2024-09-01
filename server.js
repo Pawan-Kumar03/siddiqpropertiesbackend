@@ -152,11 +152,16 @@ app.post('/api/signup', [
     const payload = { userId: user._id };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    res.status(201).json({ token });
+    user.authToken = token;
+    user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
+    await user.save();
+
+    res.status(201).json({ token, userId: user._id });
   } catch (error) {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 app.post('/api/login', [
   body('email').isEmail().withMessage('Please provide a valid email'),
@@ -183,18 +188,24 @@ app.post('/api/login', [
     const payload = { userId: user._id };
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Include username in the response
+    // Store the token and expiry date in the database
+    user.authToken = token;
+    user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
+    await user.save();
+
     res.json({
       token,
-       userId: user._id,
-      username: user.name ,
-      email: user.email
+      userId: user._id,
+      username: user.name,
+      email: user.email,
+      isVerified: user.isVerified // Include verification status in response
     });
   } catch (error) {
     console.error('Login error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 app.put('/api/profile', auth, async (req, res) => {
   const { name, email, password } = req.body;
@@ -243,30 +254,27 @@ app.post('/api/verify', auth, async (req, res) => {
 // Verify email
 app.get('/api/verify/:token', async (req, res) => {
   try {
-      console.log('Verification Token:', req.params.token); // Debug token value
-      const user = await User.findOne({
-          verificationToken: req.params.token,
-          verificationTokenExpires: { $gt: Date.now() }
-      });
+    const user = await User.findOne({
+      verificationToken: req.params.token,
+      verificationTokenExpires: { $gt: Date.now() }
+    });
 
-      console.log('User found:', user); // Debug user object
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
 
-      if (!user) {
-          return res.status(400).json({ message: 'Invalid or expired token here' });
-      }
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
 
-      // Continue with the rest of the logic
-      user.isVerified = true;
-      user.verificationToken = undefined;
-      user.verificationTokenExpires = undefined;
-      await user.save();
-
-      res.redirect('https://frontend-git-main-pawan-togas-projects.vercel.app/'); // Redirect to login page after successful verification
+    res.redirect('https://frontend-git-main-pawan-togas-projects.vercel.app/');
   } catch (error) {
-      console.error('Email verification error:', error.message);
-      res.status(500).json({ message: 'Server error' });
+    console.error('Email verification error:', error.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 
 // Check verification status
@@ -287,32 +295,31 @@ app.get('/api/verify/status', auth, async (req, res) => {
 // Request email verification link
 app.post('/api/verify/request', auth, async (req, res) => {
   try {
-      const user = await User.findById(req.user._id);
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-      // Generate verification token
-      const verificationToken = crypto.randomBytes(32).toString('hex');
-      user.verificationToken = verificationToken;
-      user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
-      await user.save();
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
+    await user.save();
 
-      // Send verification email
-      const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/api/verify/${verificationToken}`;
-      await transporter.sendMail({
-          from: process.env.EMAIL_USER,
-          to: user.email,
-          subject: 'Email Verification',
-          text: `Please verify your email by clicking the following link: ${verificationUrl}`,
-      });
+    const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/api/verify/${verificationToken}`;
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Email Verification',
+      text: `Please verify your email by clicking the following link: ${verificationUrl}`,
+    });
 
-      res.json({ message: 'Verification email sent' });
+    res.json({ message: 'Verification email sent' });
   } catch (error) {
-      console.error('Verification request error:', error.message);
-      res.status(500).json({ message: 'Server error' });
+    console.error('Verification request error:', error.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // Add this route to your Express server
 app.get('/api/user-listings', auth, async (req, res) => {
