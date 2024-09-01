@@ -10,6 +10,8 @@ import { put } from '@vercel/blob';
 import User from './models/User.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer'; 
+import crypto from 'crypto'; 
 import { body, validationResult } from 'express-validator';
 
 dotenv.config();
@@ -70,7 +72,14 @@ app.use(cors({
 //   methods: ["GET", "POST", "PUT", "DELETE"],
 //   credentials: true,
 // }));
-
+// Email setup (using nodemailer)
+const transporter = nodemailer.createTransport({
+  service: 'Gmail',
+  auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+  },
+});
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
@@ -227,21 +236,75 @@ app.post('/api/verify', auth, async (req, res) => {
   }
 });
 
-// Check verification status
-app.get('/api/verify/status', auth, async (req, res) => {
+// Verify email
+app.get('/api/verify/:token', async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+      const user = await User.findOne({
+          verificationToken: req.params.token,
+          verificationTokenExpires: { $gt: Date.now() }
+      });
 
-    res.json({ isVerified: user.isVerified });
+      if (!user) {
+          return res.status(400).json({ message: 'Invalid or expired token' });
+      }
+
+      // Mark the user as verified
+      user.isVerified = true;
+      user.verificationToken = undefined;
+      user.verificationTokenExpires = undefined;
+      await user.save();
+
+      res.redirect('https://frontend-git-main-pawan-togas-projects.vercel.app/login'); // Redirect to login page after successful verification
   } catch (error) {
-    console.error('Verification status error:', error.message);
-    res.status(500).json({ message: 'Server error' });
+      console.error('Email verification error:', error.message);
+      res.status(500).json({ message: 'Server error' });
   }
 });
 
+// Check verification status
+app.get('/api/verify/status', auth, async (req, res) => {
+  try {
+      const user = await User.findById(req.user._id);
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.json({ isVerified: user.isVerified });
+  } catch (error) {
+      console.error('Verification status error:', error.message);
+      res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Request email verification link
+app.post('/api/verify/request', auth, async (req, res) => {
+  try {
+      const user = await User.findById(req.user._id);
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Generate verification token
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      user.verificationToken = verificationToken;
+      user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
+      await user.save();
+
+      // Send verification email
+      const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/api/verify/${verificationToken}`;
+      await transporter.sendMail({
+          from: process.env.EMAIL_USER,
+          to: user.email,
+          subject: 'Email Verification',
+          text: `Please verify your email by clicking the following link: ${verificationUrl}`,
+      });
+
+      res.json({ message: 'Verification email sent' });
+  } catch (error) {
+      console.error('Verification request error:', error.message);
+      res.status(500).json({ message: 'Server error' });
+  }
+});
 
 // Add this route to your Express server
 app.get('/api/user-listings', auth, async (req, res) => {
