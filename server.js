@@ -249,7 +249,7 @@ app.get('/api/verify/:token', async (req, res) => {
       });
 
       if (!user) {
-          return res.status(400).json({ message: 'Invalid or expired token' });
+          return res.status(400).json({ message: 'Invalid or expired token here' });
       }
 
       // Mark the user as verified
@@ -258,7 +258,7 @@ app.get('/api/verify/:token', async (req, res) => {
       user.verificationTokenExpires = undefined;
       await user.save();
 
-      res.redirect('https://frontend-git-main-pawan-togas-projects.vercel.app/login'); // Redirect to login page after successful verification
+      res.redirect('https://frontend-git-main-pawan-togas-projects.vercel.app/'); // Redirect to login page after successful verification
   } catch (error) {
       console.error('Email verification error:', error.message);
       res.status(500).json({ message: 'Server error' });
