@@ -20,12 +20,16 @@ const app = express();
 // Authentication Middleware
 const auth = async (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
+  console.log('Token received:', token); // Log the token for debugging
+ 
   if (!token) {
     return res.status(401).json({ message: 'No token, authorization denied' });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Decoded token:', decoded); // Log the decoded token for debugging
+    
     req.user = await User.findById(decoded.userId).select('-password');
     if (!req.user) {
       return res.status(404).json({ message: 'User not found' });
