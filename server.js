@@ -243,16 +243,19 @@ app.post('/api/verify', auth, async (req, res) => {
 // Verify email
 app.get('/api/verify/:token', async (req, res) => {
   try {
+      console.log('Verification Token:', req.params.token); // Debug token value
       const user = await User.findOne({
           verificationToken: req.params.token,
           verificationTokenExpires: { $gt: Date.now() }
       });
 
+      console.log('User found:', user); // Debug user object
+
       if (!user) {
           return res.status(400).json({ message: 'Invalid or expired token here' });
       }
 
-      // Mark the user as verified
+      // Continue with the rest of the logic
       user.isVerified = true;
       user.verificationToken = undefined;
       user.verificationTokenExpires = undefined;
@@ -264,6 +267,7 @@ app.get('/api/verify/:token', async (req, res) => {
       res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // Check verification status
 app.get('/api/verify/status', auth, async (req, res) => {
