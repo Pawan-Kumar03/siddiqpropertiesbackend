@@ -306,6 +306,7 @@ app.post('/api/verify/request', auth, async (req, res) => {
     await user.save();
 
     const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/api/verify/${verificationToken}`;
+    console.log('verificationToken: ',verificationToken)
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
