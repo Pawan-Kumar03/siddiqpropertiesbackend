@@ -19,6 +19,7 @@ dotenv.config();
 const app = express();
 // Authentication Middleware
 const auth = async (req, res, next) => {
+  console.log('request: ',req)
   const token = req.header('Authorization')?.replace('Bearer ', '');
   console.log('Token received:', token); // Log the token for debugging
  
