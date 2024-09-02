@@ -309,7 +309,7 @@ app.post('/api/verify/request', auth, async (req, res) => {
     user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/verify/${verificationToken}`;
+    const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/about-us`;
     console.log('verificationToken: ',verificationToken)
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
