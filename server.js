@@ -55,18 +55,19 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
 
 // CORS configuration
 const allowedOrigins = [
-  'https://frontend-git-main-pawan-togas-projects.vercel.app',
-  'http://localhost:5173'
+  'https://frontend-git-main-pawan-togas-projects.vercel.app', // Production frontend
+  'http://localhost:5173' // Development frontend
 ];
 
 app.use(cors({
-  origin: function(origin, callback){
-    if(!origin) return callback(null, true);
-    if(allowedOrigins.indexOf(origin) === -1){
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || /^https:\/\/frontend-git-[\w-]+-pawan-togas-projects.vercel.app$/.test(origin)) {
+      return callback(null, true);
+    } else {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
-    return callback(null, true);
   },
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
