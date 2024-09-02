@@ -422,6 +422,58 @@ app.delete('/api/listings/:id', auth, async (req, res) => {
 });
 
 
+app.post('/api/password-reset-request', async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetToken = resetToken;
+    user.resetTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
+    await user.save();
+
+    const resetUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/reset-password/${resetToken}`;
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Password Reset Request',
+      text: `You requested a password reset. Click the link to reset your password: ${resetUrl}`,
+    });
+
+    res.json({ message: 'Password reset email sent' });
+  } catch (error) {
+    console.error('Password reset request error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+app.post('/api/reset-password', async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  try {
+    const user = await User.findOne({
+      resetToken: token,
+      resetTokenExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    user.password = newPassword; // Ensure to hash this password before saving
+    user.resetToken = undefined;
+    user.resetTokenExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Password has been reset' });
+  } catch (error) {
+    console.error('Reset password error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 
 

@@ -11,7 +11,9 @@ const UserSchema = new mongoose.Schema({
   verificationToken: String,
   verificationTokenExpires: Date,
   authToken: String, 
-  authTokenExpires: Date 
+  authTokenExpires: Date ,
+  resetToken: String,
+  resetTokenExpires: Date,
 });
 
 // Password hashing and comparison
