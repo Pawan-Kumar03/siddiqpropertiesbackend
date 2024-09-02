@@ -72,11 +72,7 @@ app.use(cors({
   credentials: true,
 }));
 
-// app.use(cors({
-//   origin: allowedOrigins,
-//   methods: ["GET", "POST", "PUT", "DELETE"],
-//   credentials: true,
-// }));
+
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -234,23 +230,30 @@ app.put('/api/profile', auth, async (req, res) => {
 });
 
 // Verify user
-app.post('/api/verify', auth, async (req, res) => {
+app.post('/api/verify', async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const { token } = req.body;
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationTokenExpires: { $gt: Date.now() },
+    });
+
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(400).json({ message: 'Invalid or expired token' });
     }
 
-    // Set the user as verified
     user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
     await user.save();
 
-    res.json({ message: 'Verification successful' });
+    res.json({ message: 'User verified successfully' });
   } catch (error) {
     console.error('Verification error:', error.message);
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 
 // Verify email
 app.get('/api/verify/:token', async (req, res) => {
@@ -306,13 +309,13 @@ app.post('/api/verify/request', auth, async (req, res) => {
     user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/api/verify/${verificationToken}`;
+    const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/verify/${verificationToken}`;
     console.log('verificationToken: ',verificationToken)
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
-      subject: 'Email Verification',
-      text: `Please verify your email by clicking the following link: ${verificationUrl}`,
+      subject: 'Email Verification from MASKAN',
+      text: `Please verify your profile by clicking the following link: ${verificationUrl}`,
     });
 
     res.json({ message: 'Verification email sent' });
