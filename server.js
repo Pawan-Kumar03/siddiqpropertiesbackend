@@ -280,6 +280,22 @@ app.get('/api/verify/:token', async (req, res) => {
   }
 });
 
+app.post('/api/refresh-token', auth, async (req, res) => {
+  try {
+      const payload = { userId: req.user._id };
+      const newToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+      // Update the authToken and its expiry in the database
+      req.user.authToken = newToken;
+      req.user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
+      await req.user.save();
+
+      res.json({ token: newToken });
+  } catch (error) {
+      console.error('Error refreshing token:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+});
 
 
 // Check verification status
