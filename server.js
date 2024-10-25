@@ -420,6 +420,7 @@ app.put('/api/listings/:id', auth, uploadMultiple, async (req, res) => {
       res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 app.delete('/api/listings/:id', auth, async (req, res) => {
   const { id } = req.params;
 
@@ -437,7 +438,6 @@ app.delete('/api/listings/:id', auth, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-
 
 app.post('/api/password-reset-request', async (req, res) => {
   const { email } = req.body;
@@ -467,6 +467,7 @@ app.post('/api/password-reset-request', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 app.post('/api/reset-password', async (req, res) => {
   const { token, newPassword } = req.body;
 
@@ -492,14 +493,12 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
-
-
-
 // Error handler middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
   res.status(500).json({ message: 'Internal Server Error' });
 });
+
 app.get('/api/listings', async (req, res) => {
   const { city, location } = req.query;
   try {
