@@ -29,7 +29,7 @@ const auth = async (req, res, next) => {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Decoded token:', decoded); // Log the decoded token for debugging
+    // console.log('Decoded token:', decoded); // Log the decoded token for debugging
     
     req.user = await User.findById(decoded.userId).select('-password');
     if (!req.user) {
@@ -37,7 +37,9 @@ const auth = async (req, res, next) => {
     }
     next();
   } catch (error) {
+    alert('Session has ended, please login again.');
     res.status(401).json({ message: 'Token is not valid', error: error.message });
+
   }
 };
 
