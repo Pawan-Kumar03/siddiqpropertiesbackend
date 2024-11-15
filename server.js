@@ -57,9 +57,10 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
 
 // CORS configuration
 const allowedOrigins = [
-  'https://frontend-git-main-pawan-togas-projects.vercel.app', // 
-  'https://www.investibayt.com/' // Production frontend
+  'https://www.investibayt.com', // Updated production frontend
+  'https://frontend-git-main-pawan-togas-projects.vercel.app' // Keeping the old domain in case you need to support both
 ];
+
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -275,7 +276,7 @@ app.get('/api/verify/:token', async (req, res) => {
     user.verificationTokenExpires = undefined;
     await user.save();
 
-    res.redirect('https://frontend-git-main-pawan-togas-projects.vercel.app/');
+    res.redirect('https://www.investibayt.com/');
   } catch (error) {
     console.error('Email verification error:', error.message);
     res.status(500).json({ message: 'Server error' });
@@ -328,7 +329,7 @@ app.post('/api/verify/request', auth, async (req, res) => {
     user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const verificationUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/verify/${verificationToken}`;
+    const verificationUrl = `https://www.investibayt.com/verify/${verificationToken}`;
     console.log('verificationToken: ',verificationToken)
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -455,7 +456,7 @@ app.post('/api/password-reset-request', async (req, res) => {
     user.resetTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const resetUrl = `https://frontend-git-main-pawan-togas-projects.vercel.app/reset-password/${resetToken}`;
+    const resetUrl = `https://www.investibayt.com/reset-password/${resetToken}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
