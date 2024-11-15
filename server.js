@@ -57,8 +57,8 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
 
 // CORS configuration
 const allowedOrigins = [
-  'https://frontend-git-main-pawan-togas-projects.vercel.app', // Production frontend
-  'http://localhost:5173' // Development frontend
+  'https://frontend-git-main-pawan-togas-projects.vercel.app', // 
+  'https://www.investibayt.com/' // Production frontend
 ];
 
 app.use(cors({
