@@ -60,12 +60,17 @@ const allowedOrigins = [
   'https://www.investibayt.com', // Updated production frontend
   'https://frontend-git-main-pawan-togas-projects.vercel.app' // Keeping the old domain in case you need to support both
 ];
-
-app.use(cors({ //for testing purpose
-  origin: '*', // Allow all origins for testing
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
+app.use(cors({
+  origin: 'https://www.investibayt.com',  // Allow only this origin
+  methods: ["GET", "POST", "PUT", "DELETE"],  // Allow only the necessary HTTP methods
+  credentials: true,  // Enable credentials if you're using cookies or authentication tokens
 }));
+
+// app.use(cors({ //for testing purpose
+//   origin: '*', // Allow all origins for testing
+//   methods: ["GET", "POST", "PUT", "DELETE"],
+//   credentials: true,
+// }));
 
 // app.use(cors({
 //   origin: function (origin, callback) {
