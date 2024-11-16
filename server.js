@@ -61,20 +61,25 @@ const allowedOrigins = [
   'https://frontend-git-main-pawan-togas-projects.vercel.app' // Keeping the old domain in case you need to support both
 ];
 
-
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // Handle when there's no origin (e.g., Postman requests)
-    if (allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))) {
-      return callback(null, true);
-    } else {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-  },
+app.use(cors({ //for testing purpose
+  origin: '*', // Allow all origins for testing
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
+
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     if (!origin) return callback(null, true); // Handle when there's no origin (e.g., Postman requests)
+//     if (allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))) {
+//       return callback(null, true);
+//     } else {
+//       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+//       return callback(new Error(msg), false);
+//     }
+//   },
+//   methods: ["GET", "POST", "PUT", "DELETE"],
+//   credentials: true,
+// }));
 
 
 
