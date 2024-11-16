@@ -64,8 +64,8 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || /^https:\/\/frontend-git-[\w-]+-pawan-togas-projects.vercel.app$/.test(origin)) {
+    if (!origin) return callback(null, true); // Handle when there's no origin (e.g., Postman requests)
+    if (allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))) {
       return callback(null, true);
     } else {
       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
@@ -75,6 +75,7 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true,
 }));
+
 
 
 // Email setup (using nodemailer)
