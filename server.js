@@ -372,41 +372,74 @@ app.get('/api/user-listings', auth, async (req, res) => {
 });
 app.post('/api/listings', auth, upload, async (req, res) => {
   const {
-    title, price, city, location, propertyType, beds, baths, description,
-    propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber,
+    title, price, city, location, country, propertyType, beds, baths, description,
+    propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
     reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
     extension, broker, phone, email, whatsapp, purpose, status
   } = req.body;
+
   console.log('Request body:', req.body);
-// Check if req.user.listings is defined and an array
-if (!req.user.listings) {
-  req.user.listings = [];  // Initialize if undefined
-}
+
+  // Check if req.user.listings is defined and an array
+  if (!req.user.listings) {
+    req.user.listings = []; // Initialize if undefined
+  }
+
   try {
-    const images = req.files ? await Promise.all(req.files.map(async (file) => {
-      const blobName = `${Date.now()}-${file.originalname}`;
-      const blobResult = await put(blobName, file.buffer, { access: 'public' });
-      return blobResult.url;
-    })) : [];
+    const images = req.files
+      ? await Promise.all(
+          req.files.map(async (file) => {
+            const blobName = `${Date.now()}-${file.originalname}`;
+            const blobResult = await put(blobName, file.buffer, { access: 'public' });
+            return blobResult.url;
+          })
+        )
+      : [];
 
     const listing = new Listing({
-      title, price, city, location, propertyType, beds, baths, description,
-      propertyReferenceId, building, neighborhood, landlordName, reraTitleNumber,
-      reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
-      image: images.length === 1 ? images[0] : '', images: images.length > 1 ? images : [],
-      extension, broker, phone, email, whatsapp, purpose, status,
-      user: req.user._id // Associate the listing with the logged-in user
+      title,
+      price,
+      city,
+      location,
+      country, // Added country field
+      propertyType,
+      beds,
+      baths,
+      description,
+      propertyReferenceId,
+      building,
+      neighborhood,
+      developments, // Added developments field
+      landlordName,
+      reraTitleNumber,
+      reraPreRegistrationNumber,
+      agentName,
+      agentCallNumber,
+      agentEmail,
+      agentWhatsapp,
+      image: images.length === 1 ? images[0] : '',
+      images: images.length > 1 ? images : [],
+      extension,
+      broker,
+      phone,
+      email,
+      whatsapp,
+      purpose,
+      status,
+      user: req.user._id, // Associate the listing with the logged-in user
     });
 
     const savedListing = await listing.save();
     req.user.listings.push(savedListing._id);
     await req.user.save();
+
     res.status(201).json(savedListing);
   } catch (error) {
-    console.error('Error creating listing:', error);  
+    console.error('Error creating listing:', error);
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 // Update the PUT route to handle multipart form data
 app.put('/api/listings/:id', auth, uploadMultiple, async (req, res) => {
   const { id } = req.params;
