@@ -7,6 +7,7 @@ const ListingSchema = new mongoose.Schema({
   price: { type: String, required: true },
   city: { type: String, required: true },
   location: { type: String, required: true },
+  country: { type: String, required: true }, // New field for country
   propertyType: { type: String, required: true },
   beds: { type: Number, required: true },
   baths: { type: Number, default: 0 },
@@ -14,6 +15,7 @@ const ListingSchema = new mongoose.Schema({
   propertyReferenceId: { type: String, default: '' },
   building: { type: String, default: '' },
   neighborhood: { type: String, default: '' },
+  developments: { type: String, default: '' }, // New field for developments
   landlordName: { type: String, default: '' },
   reraTitleNumber: { type: String, default: '' },
   reraPreRegistrationNumber: { type: String, default: '' },
@@ -26,9 +28,11 @@ const ListingSchema = new mongoose.Schema({
   email: { type: String, required: true },
   phone: { type: String, required: true },
   whatsapp: { type: String, required: true },
-  purpose: { type: String, required: true }, 
+  purpose: { type: String, required: true },
   status: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } 
+  landlord: { type: Boolean, default: false }, // Field to determine if the listing is by landlord
+  amenities: { type: [String], default: [] }, // Field for amenities
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } // Reference to user
 }, { collection: 'listings' });
 
 const Listing = mongoose.model('Listing', ListingSchema);
