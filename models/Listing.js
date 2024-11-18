@@ -31,7 +31,7 @@ const ListingSchema = new mongoose.Schema({
   purpose: { type: String, required: true },
   status: { type: String, required: true },
   landlord: { type: Boolean, default: false }, // Field to determine if the listing is by landlord
-  amenities: { type: [String], default: [] }, // Field for amenities
+  amenities: { type: [String], default: [],required: false }, // Field for amenities
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' } // Reference to user
 }, { collection: 'listings' });
 

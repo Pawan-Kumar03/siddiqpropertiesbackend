@@ -375,7 +375,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     title, price, city, location, country, propertyType, beds, baths, description,
     propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
     reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
-    extension, broker, phone, email, whatsapp, purpose, status
+    extension, broker, phone, email, whatsapp, purpose, status, amenities
   } = req.body;
 
   console.log('Request body:', req.body);
@@ -426,6 +426,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       whatsapp,
       purpose,
       status,
+      amenities: amenities || [], // Adding amenities to the listing
       user: req.user._id, // Associate the listing with the logged-in user
     });
 
@@ -439,6 +440,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 // Update the PUT route to handle multipart form data
 app.put('/api/listings/:id', auth, uploadMultiple, async (req, res) => {
