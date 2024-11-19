@@ -76,27 +76,28 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
+    // If no origin is provided (e.g., from Postman or other testing tools)
     if (!origin) {
-      // Allow requests from Postman or other tools without an origin
       return callback(null, true);
     }
     
-    // Update this check to account for both main and subdomains
+    // List of allowed origins
     const allowedOrigins = [
       'https://www.investibayt.com', // Frontend production URL
-      'https://frontend-git-main-pawan-togas-projects.vercel.app', // Old frontend URL
+      'https://investibayt.com', // Ensure this matches exactly
+      'https://frontend-git-main-pawan-togas-projects.vercel.app' // Old frontend URL (in case you need support)
     ];
-    
+
     // Check if the origin is in the allowed list
-    if (allowedOrigins.some(allowedOrigin => origin.startsWith(allowedOrigin))) {
-      return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);  // Origin is allowed
     } else {
       const errorMsg = `CORS policy does not allow access from origin: ${origin}`;
-      return callback(new Error(errorMsg), false);
+      return callback(new Error(errorMsg), false);  // Origin is not allowed
     }
   },
   methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,
+  credentials: true,  // Allow credentials (cookies, headers)
 }));
 
 
