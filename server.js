@@ -50,6 +50,8 @@ const mongoURI = process.env.MONGO_URI;
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, dbName: 'PropertySales' })
   .then(() => {
     console.log('Database connected successfully');
+    console.log('Mongo URI:', process.env.MONGO_URI);
+
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
@@ -60,11 +62,11 @@ const allowedOrigins = [
   'https://www.investibayt.com', // Updated production frontend
   'https://frontend-git-main-pawan-togas-projects.vercel.app' // Keeping the old domain in case you need to support both
 ];
-app.use(cors({
-  origin: 'https://www.investibayt.com',  // Allow only this origin
-  methods: ["GET", "POST", "PUT", "DELETE"],  // Allow only the necessary HTTP methods
-  credentials: true,  // Enable credentials if you're using cookies or authentication tokens
-}));
+// app.use(cors({
+//   origin: 'https://www.investibayt.com',  // Allow only this origin
+//   methods: ["GET", "POST", "PUT", "DELETE"],  // Allow only the necessary HTTP methods
+//   credentials: true,  // Enable credentials if you're using cookies or authentication tokens
+// }));
 
 // app.use(cors({ //for testing purpose
 //   origin: '*', // Allow all origins for testing
@@ -72,20 +74,23 @@ app.use(cors({
 //   credentials: true,
 // }));
 
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     if (!origin) return callback(null, true); // Handle when there's no origin (e.g., Postman requests)
-//     if (allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))) {
-//       return callback(null, true);
-//     } else {
-//       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-//       return callback(new Error(msg), false);
-//     }
-//   },
-//   methods: ["GET", "POST", "PUT", "DELETE"],
-//   credentials: true,
-// }));
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // Handle when there's no origin (e.g., Postman requests)
+    if (allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))) {
+      return callback(null, true);
+    } else {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,
+}));
 
+app.get('/', (req, res) => {
+  res.status(200).send('Backend is running.');
+});
 
 
 // Email setup (using nodemailer)
