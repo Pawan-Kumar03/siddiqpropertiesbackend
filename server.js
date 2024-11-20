@@ -13,6 +13,7 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 import crypto from 'crypto'; 
 import { body, validationResult } from 'express-validator';
+const multer = require('multer');
 
 dotenv.config();
 
@@ -136,22 +137,22 @@ const uploadSingle = multer({
 // Multer configuration for handling multiple file uploads
 const storageMultiple = multer.memoryStorage();
 
-const upload = multer({
-  storage: storageMultiple,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB per file
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-}).array('images', 12);
+// const upload = multer({
+//   storage: storageMultiple,
+//   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB per file
+//   fileFilter: (req, file, cb) => {
+//     if (file.mimetype.startsWith('image/')) {
+//       cb(null, true);
+//     } else {
+//       cb(new Error('Only image files are allowed!'), false);
+//     }
+//   }
+// }).array('images', 12);
  // Handle multiple file uploads with field name 'images'
 // app.use('/api/listings', auth);
 const uploadMultiple = multer({
   storage: storageMultiple,
-  limits: { fileSize: 50 * 1024 * 1024 }, // 10 MB limit for each file
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit for each file
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -161,6 +162,21 @@ const uploadMultiple = multer({
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
+// Configure multer to store uploaded files
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');  // The folder where files will be saved
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + path.extname(file.originalname));  // Use unique filenames
+  }
+});
+
+// Initialize multer with the storage configuration
+const upload = multer({ 
+  storage: storage, 
+  limits: { fileSize: 100 * 1024 * 1024 } // Limit file size to 100 MB
+});
 app.post('/api/signup', [
   body('name').not().isEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Please provide a valid email'),
@@ -391,6 +407,7 @@ app.get('/api/user-listings', auth, async (req, res) => {
       res.status(500).json({ message: 'Server Error' });
   }
 });
+// POST request to create a new listing
 app.post('/api/listings', auth, uploadMultiple, async (req, res) => {
   try {
     const {
@@ -400,21 +417,23 @@ app.post('/api/listings', auth, uploadMultiple, async (req, res) => {
       extension, broker, phone, email, whatsapp, purpose, status, amenities
     } = req.body;
 
-    console.log('Request body:', req.body);
+    console.log('Request body:', req.body); // Logs the received form data
 
+    // Check if files are uploaded
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No images uploaded.' });
     }
 
-    // Upload files to your Blob storage
+    // Upload images to Blob storage
     const images = await Promise.all(
       req.files.map(async (file) => {
-        const blobName = `${Date.now()}-${file.originalname}`;
+        const blobName = `${Date.now()}-${file.originalname}`;  // Unique name for each file
         const blobResult = await put(blobName, file.buffer, { access: 'public' });
         return blobResult.url;
       })
     );
 
+    // Create a new listing object
     const listing = new Listing({
       title,
       price,
@@ -436,8 +455,8 @@ app.post('/api/listings', auth, uploadMultiple, async (req, res) => {
       agentCallNumber,
       agentEmail,
       agentWhatsapp,
-      image: images[0] || '', // Default to first image
-      images,
+      image: images[0] || '', // First image as a default
+      images,  // Array of uploaded image URLs
       extension,
       broker,
       phone,
@@ -446,14 +465,18 @@ app.post('/api/listings', auth, uploadMultiple, async (req, res) => {
       purpose,
       status,
       amenities: amenities || [],
-      user: req.user._id,
+      user: req.user._id, // Associate the listing with the logged-in user
     });
 
+    // Save the listing to the database
     const savedListing = await listing.save();
+
+    // Add the new listing to the user's list of listings
     req.user.listings = req.user.listings || [];
     req.user.listings.push(savedListing._id);
     await req.user.save();
 
+    // Respond with the created listing
     res.status(201).json(savedListing);
   } catch (error) {
     console.error('Error creating listing:', error.message);
