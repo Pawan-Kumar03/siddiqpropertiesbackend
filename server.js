@@ -18,10 +18,11 @@ dotenv.config();
 
 const app = express();
 // Middleware to handle large payloads
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(bodyParser.json({ limit: '100mb' }));
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+
 
 // Authentication Middleware
 const auth = async (req, res, next) => {
@@ -141,8 +142,8 @@ const uploadSingle = multer({
 const storageMultiple = multer.memoryStorage();
 
 const upload = multer({
-  storageMultiple,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
+  storage: storageMultiple,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB per file
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -150,7 +151,8 @@ const upload = multer({
       cb(new Error('Only image files are allowed!'), false);
     }
   }
-}).array('images', 12); // Handle multiple file uploads with field name 'images'
+}).array('images', 12);
+ // Handle multiple file uploads with field name 'images'
 // app.use('/api/listings', auth);
 const uploadMultiple = multer({
   storage: storageMultiple,
