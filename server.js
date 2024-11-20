@@ -13,7 +13,6 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 import crypto from 'crypto'; 
 import { body, validationResult } from 'express-validator';
-const multer = require('multer');
 
 dotenv.config();
 
@@ -418,28 +417,72 @@ app.post('/api/listings', auth, uploadMultiple, async (req, res) => {
       extension, broker, phone, email, whatsapp, purpose, status, amenities
     } = req.body;
 
+    console.log('Request body:', req.body); // Logs the received form data
+
+    // Check if files are uploaded
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ message: 'No images uploaded.' });
     }
 
-    // More processing logic
+    // Upload images to Blob storage
+    const images = await Promise.all(
+      req.files.map(async (file) => {
+        const blobName = `${Date.now()}-${file.originalname}`;  // Unique name for each file
+        const blobResult = await put(blobName, file.buffer, { access: 'public' });
+        return blobResult.url;
+      })
+    );
 
+    // Create a new listing object
     const listing = new Listing({
-      title, price, city, location, country, propertyType, beds, baths, description, images, extension,
-      broker, phone, email, whatsapp, purpose, status, amenities, user: req.user._id
+      title,
+      price,
+      city,
+      location,
+      country,
+      propertyType,
+      beds,
+      baths,
+      description,
+      propertyReferenceId,
+      building,
+      neighborhood,
+      developments,
+      landlordName,
+      reraTitleNumber,
+      reraPreRegistrationNumber,
+      agentName,
+      agentCallNumber,
+      agentEmail,
+      agentWhatsapp,
+      image: images[0] || '', // First image as a default
+      images,  // Array of uploaded image URLs
+      extension,
+      broker,
+      phone,
+      email,
+      whatsapp,
+      purpose,
+      status,
+      amenities: amenities || [],
+      user: req.user._id, // Associate the listing with the logged-in user
     });
 
+    // Save the listing to the database
     const savedListing = await listing.save();
+
+    // Add the new listing to the user's list of listings
+    req.user.listings = req.user.listings || [];
     req.user.listings.push(savedListing._id);
     await req.user.save();
 
+    // Respond with the created listing
     res.status(201).json(savedListing);
   } catch (error) {
-    console.error('Error creating listing:', error);
+    console.error('Error creating listing:', error.message);
     res.status(500).json({ message: 'Error creating listing.', error: error.message });
   }
 });
-
 
 
 
