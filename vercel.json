@@ -15,11 +15,5 @@
         { "key": "Content-Type", "value": "application/json" }
       ]
     }
-  ],
-  "functions": {
-    "api/listings": {
-      "maxDuration": 10,
-      "memory": 1024
-    }
-  }
+  ]
 }
