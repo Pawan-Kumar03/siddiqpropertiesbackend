@@ -20,35 +20,30 @@ const app = express();
 // Middleware to handle large payloads
 app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ limit: '100mb', extended: true }));
-app.use(bodyParser.json({ limit: '100mb' }));
-app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 
 // Authentication Middleware
 const auth = async (req, res, next) => {
-  console.log('request: ',req)
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  console.log('Token received:', token); // Log the token for debugging
- 
-  if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
-  }
-
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // console.log('Decoded token:', decoded); // Log the decoded token for debugging
-    
-    req.user = await User.findById(decoded.userId).select('-password');
-    if (!req.user) {
-      return res.status(404).json({ message: 'User not found' });
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ message: 'Authorization token missing.' });
     }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    req.user = user; // Attach the user object to the request
     next();
   } catch (error) {
-    alert('Session has ended, please login again.');
-    res.status(401).json({ message: 'Token is not valid', error: error.message });
-
+    console.error('Authentication error:', error.message);
+    res.status(401).json({ message: 'Invalid token.', error: error.message });
   }
 };
+
 
 
 // Connect to MongoDB
@@ -396,38 +391,36 @@ app.get('/api/user-listings', auth, async (req, res) => {
       res.status(500).json({ message: 'Server Error' });
   }
 });
-app.post('/api/listings', auth, upload, async (req, res) => {
-  const {
-    title, price, city, location, country, propertyType, beds, baths, description,
-    propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
-    reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
-    extension, broker, phone, email, whatsapp, purpose, status, amenities
-  } = req.body;
-
-  console.log('Request body:', req.body);
-
-  // Check if req.user.listings is defined and an array
-  if (!req.user.listings) {
-    req.user.listings = []; // Initialize if undefined
-  }
-
+app.post('/api/listings', auth, uploadMultiple, async (req, res) => {
   try {
-    const images = req.files
-      ? await Promise.all(
-          req.files.map(async (file) => {
-            const blobName = `${Date.now()}-${file.originalname}`;
-            const blobResult = await put(blobName, file.buffer, { access: 'public' });
-            return blobResult.url;
-          })
-        )
-      : [];
+    const {
+      title, price, city, location, country, propertyType, beds, baths, description,
+      propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
+      reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
+      extension, broker, phone, email, whatsapp, purpose, status, amenities
+    } = req.body;
+
+    console.log('Request body:', req.body);
+
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: 'No images uploaded.' });
+    }
+
+    // Upload files to your Blob storage
+    const images = await Promise.all(
+      req.files.map(async (file) => {
+        const blobName = `${Date.now()}-${file.originalname}`;
+        const blobResult = await put(blobName, file.buffer, { access: 'public' });
+        return blobResult.url;
+      })
+    );
 
     const listing = new Listing({
       title,
       price,
       city,
       location,
-      country, // Added country field
+      country,
       propertyType,
       beds,
       baths,
@@ -435,7 +428,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       propertyReferenceId,
       building,
       neighborhood,
-      developments, // Added developments field
+      developments,
       landlordName,
       reraTitleNumber,
       reraPreRegistrationNumber,
@@ -443,8 +436,8 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       agentCallNumber,
       agentEmail,
       agentWhatsapp,
-      image: images.length === 1 ? images[0] : '',
-      images: images.length > 1 ? images : [],
+      image: images[0] || '', // Default to first image
+      images,
       extension,
       broker,
       phone,
@@ -452,20 +445,22 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       whatsapp,
       purpose,
       status,
-      amenities: amenities || [], // Adding amenities to the listing
-      user: req.user._id, // Associate the listing with the logged-in user
+      amenities: amenities || [],
+      user: req.user._id,
     });
 
     const savedListing = await listing.save();
+    req.user.listings = req.user.listings || [];
     req.user.listings.push(savedListing._id);
     await req.user.save();
 
     res.status(201).json(savedListing);
   } catch (error) {
-    console.error('Error creating listing:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error('Error creating listing:', error.message);
+    res.status(500).json({ message: 'Error creating listing.', error: error.message });
   }
 });
+
 
 
 // Update the PUT route to handle multipart form data
