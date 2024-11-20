@@ -151,7 +151,7 @@ const upload = multer({
 // app.use('/api/listings', auth);
 const uploadMultiple = multer({
   storage: storageMultiple,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
+  limits: { fileSize: 50 * 1024 * 1024 }, // 10 MB limit for each file
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
