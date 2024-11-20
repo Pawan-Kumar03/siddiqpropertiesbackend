@@ -64,17 +64,7 @@ const allowedOrigins = [
   'https://www.investibayt.com', // Updated production frontend
   'https://frontend-git-main-pawan-togas-projects.vercel.app' // Keeping the old domain in case you need to support both
 ];
-// app.use(cors({
-//   origin: 'https://www.investibayt.com',  // Allow only this origin
-//   methods: ["GET", "POST", "PUT", "DELETE"],  // Allow only the necessary HTTP methods
-//   credentials: true,  // Enable credentials if you're using cookies or authentication tokens
-// }));
 
-// app.use(cors({ //for testing purpose
-//   origin: '*', // Allow all origins for testing
-//   methods: ["GET", "POST", "PUT", "DELETE"],
-//   credentials: true,
-// }));
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -137,19 +127,7 @@ const uploadSingle = multer({
 // Multer configuration for handling multiple file uploads
 const storageMultiple = multer.memoryStorage();
 
-// const upload = multer({
-//   storage: storageMultiple,
-//   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB per file
-//   fileFilter: (req, file, cb) => {
-//     if (file.mimetype.startsWith('image/')) {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Only image files are allowed!'), false);
-//     }
-//   }
-// }).array('images', 12);
- // Handle multiple file uploads with field name 'images'
-// app.use('/api/listings', auth);
+
 const uploadMultiple = multer({
   storage: storageMultiple,
   limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit for each file
@@ -177,239 +155,12 @@ const upload = multer({
   storage: storage, 
   limits: { fileSize: 100 * 1024 * 1024 } // Limit file size to 100 MB
 });
-app.post('/api/signup', [
-  body('name').not().isEmpty().withMessage('Name is required'),
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
 
-  const { name, email, password } = req.body;
-
-  try {
-    let user = await User.findOne({ email });
-    if (user) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
-
-    user = new User({ name, email, password });
-    await user.save();
-
-    const payload = { userId: user._id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-    user.authToken = token;
-    user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
-    await user.save();
-
-    res.status(201).json({ token, userId: user._id });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-app.post('/api/login', [
-  body('email').isEmail().withMessage('Please provide a valid email'),
-  body('password').exists().withMessage('Password is required')
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
-  const { email, password } = req.body;
-
-  try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    const isMatch = await user.matchPassword(password);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
-
-    const payload = { userId: user._id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-    // Store the token and expiry date in the database
-    user.authToken = token;
-    user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
-    await user.save();
-
-    res.json({
-      token,
-      userId: user._id,
-      username: user.name,
-      email: user.email,
-      isVerified: user.isVerified // Include verification status in response
-    });
-  } catch (error) {
-    console.error('Login error:', error.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-app.put('/api/profile', auth, async (req, res) => {
-  const { name, email, password } = req.body;
-  try {
-      const user = await User.findById(req.user._id);
-
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
-
-      user.name = name || user.name;
-      user.email = email || user.email;
-
-      if (password) {
-          user.password = password; // Assuming pre-save hook will hash it
-      }
-
-      await user.save();
-
-      res.json({ name: user.name, email: user.email });
-  } catch (error) {
-      console.error('Profile update error:', error.message);
-      res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Verify user
-app.post('/api/verify', async (req, res) => {
-  try {
-    const { token } = req.body;
-    const user = await User.findOne({
-      verificationToken: token,
-      verificationTokenExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
-    }
-
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
-    await user.save();
-
-    res.json({ message: 'User verified successfully' });
-  } catch (error) {
-    console.error('Verification error:', error.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-// Verify email
-app.get('/api/verify/:token', async (req, res) => {
-  try {
-    const user = await User.findOne({
-      verificationToken: req.params.token,
-      verificationTokenExpires: { $gt: Date.now() }
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired token' });
-    }
-
-    user.isVerified = true;
-    user.verificationToken = undefined;
-    user.verificationTokenExpires = undefined;
-    await user.save();
-
-    res.redirect('https://www.investibayt.com/');
-  } catch (error) {
-    console.error('Email verification error:', error.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-app.post('/api/refresh-token', auth, async (req, res) => {
-  try {
-      const payload = { userId: req.user._id };
-      const newToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
-
-      // Update the authToken and its expiry in the database
-      req.user.authToken = newToken;
-      req.user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
-      await req.user.save();
-
-      res.json({ token: newToken });
-  } catch (error) {
-      console.error('Error refreshing token:', error);
-      res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-// Check verification status
-app.get('/api/verify/status', auth, async (req, res) => {
-  try {
-      const user = await User.findById(req.user._id);
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
-
-      res.json({ isVerified: user.isVerified });
-  } catch (error) {
-      console.error('Verification status error:', error.message);
-      res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Request email verification link
-app.post('/api/verify/request', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    const verificationToken = crypto.randomBytes(32).toString('hex');
-    user.verificationToken = verificationToken;
-    user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
-    await user.save();
-
-    const verificationUrl = `https://www.investibayt.com/verify/${verificationToken}`;
-    console.log('verificationToken: ',verificationToken)
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: 'Email Verification from MASKAN',
-      text: `Please verify your profile by clicking the following link: ${verificationUrl}`,
-    });
-
-    res.json({ message: 'Verification email sent' });
-  } catch (error) {
-    console.error('Verification request error:', error.message);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-
-// Add this route to your Express server
-app.get('/api/user-listings', auth, async (req, res) => {
-  try {
-      const user = await User.findById(req.user._id).populate('listings'); // Populate listings
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
-      res.json(user.listings);
-  } catch (error) {
-      console.error('Error fetching user listings:', error);
-      res.status(500).json({ message: 'Server Error' });
-  }
-});
 // POST request to create a new listing
 app.post('/api/listings', auth, uploadMultiple, async (req, res) => {
   try {
+    console.log('Received request body:', req.body);  // Log the body
+    console.log('Received files:', req.files);  // Log the files
     const {
       title, price, city, location, country, propertyType, beds, baths, description,
       propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
@@ -703,3 +454,233 @@ app.post('/api/whatsapp', async (req, res) => {
   }
 });
 
+app.post('/api/signup', [
+  body('name').not().isEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { name, email, password } = req.body;
+
+  try {
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    user = new User({ name, email, password });
+    await user.save();
+
+    const payload = { userId: user._id };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    user.authToken = token;
+    user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
+    await user.save();
+
+    res.status(201).json({ token, userId: user._id });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+app.post('/api/login', [
+  body('email').isEmail().withMessage('Please provide a valid email'),
+  body('password').exists().withMessage('Password is required')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { email, password } = req.body;
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    const payload = { userId: user._id };
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    // Store the token and expiry date in the database
+    user.authToken = token;
+    user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
+    await user.save();
+
+    res.json({
+      token,
+      userId: user._id,
+      username: user.name,
+      email: user.email,
+      isVerified: user.isVerified // Include verification status in response
+    });
+  } catch (error) {
+    console.error('Login error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+app.put('/api/profile', auth, async (req, res) => {
+  const { name, email, password } = req.body;
+  try {
+      const user = await User.findById(req.user._id);
+
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      user.name = name || user.name;
+      user.email = email || user.email;
+
+      if (password) {
+          user.password = password; // Assuming pre-save hook will hash it
+      }
+
+      await user.save();
+
+      res.json({ name: user.name, email: user.email });
+  } catch (error) {
+      console.error('Profile update error:', error.message);
+      res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Verify user
+app.post('/api/verify', async (req, res) => {
+  try {
+    const { token } = req.body;
+    const user = await User.findOne({
+      verificationToken: token,
+      verificationTokenExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'User verified successfully' });
+  } catch (error) {
+    console.error('Verification error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// Verify email
+app.get('/api/verify/:token', async (req, res) => {
+  try {
+    const user = await User.findOne({
+      verificationToken: req.params.token,
+      verificationTokenExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token' });
+    }
+
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpires = undefined;
+    await user.save();
+
+    res.redirect('https://www.investibayt.com/');
+  } catch (error) {
+    console.error('Email verification error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+app.post('/api/refresh-token', auth, async (req, res) => {
+  try {
+      const payload = { userId: req.user._id };
+      const newToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+      // Update the authToken and its expiry in the database
+      req.user.authToken = newToken;
+      req.user.authTokenExpires = Date.now() + 3600000; // Token expiry set to 1 hour
+      await req.user.save();
+
+      res.json({ token: newToken });
+  } catch (error) {
+      console.error('Error refreshing token:', error);
+      res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// Check verification status
+app.get('/api/verify/status', auth, async (req, res) => {
+  try {
+      const user = await User.findById(req.user._id);
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+
+      res.json({ isVerified: user.isVerified });
+  } catch (error) {
+      console.error('Verification status error:', error.message);
+      res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Request email verification link
+app.post('/api/verify/request', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    user.verificationToken = verificationToken;
+    user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
+    await user.save();
+
+    const verificationUrl = `https://www.investibayt.com/verify/${verificationToken}`;
+    console.log('verificationToken: ',verificationToken)
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Email Verification from MASKAN',
+      text: `Please verify your profile by clicking the following link: ${verificationUrl}`,
+    });
+
+    res.json({ message: 'Verification email sent' });
+  } catch (error) {
+    console.error('Verification request error:', error.message);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
+// Add this route to your Express server
+app.get('/api/user-listings', auth, async (req, res) => {
+  try {
+      const user = await User.findById(req.user._id).populate('listings'); // Populate listings
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+      res.json(user.listings);
+  } catch (error) {
+      console.error('Error fetching user listings:', error);
+      res.status(500).json({ message: 'Server Error' });
+  }
+});
