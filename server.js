@@ -17,6 +17,8 @@ import { body, validationResult } from 'express-validator';
 dotenv.config();
 
 const app = express();
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 // Authentication Middleware
 const auth = async (req, res, next) => {
   console.log('request: ',req)
