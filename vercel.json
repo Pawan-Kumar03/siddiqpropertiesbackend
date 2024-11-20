@@ -3,9 +3,9 @@
   "builds": [
     { "src": "server.js", "use": "@vercel/node", "config": { "maxDuration": 30 } }
   ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "server.js" }, 
-    { "src": "/(.*)", "dest": "/" }
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "server.js" },
+    { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [
     {
