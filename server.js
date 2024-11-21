@@ -17,6 +17,7 @@ import { body, validationResult } from 'express-validator';
 dotenv.config();
 
 const app = express();
+app.use(bodyParser.json({ limit: '100mb' }));
 // Authentication Middleware
 const auth = async (req, res, next) => {
   console.log('request: ',req)
