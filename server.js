@@ -119,7 +119,7 @@ const storageMultiple = multer.memoryStorage();
 
 const upload = multer({
   storageMultiple,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit for each file
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true);
@@ -379,7 +379,8 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     extension, broker, phone, email, whatsapp, purpose, status, amenities
   } = req.body;
 
-  console.log('Request body:', req.body);
+  console.log('Request body:', req.body); // This should now contain the form fields
+  console.log('Uploaded files:', req.files)
 
   // Check if req.user.listings is defined and an array
   if (!req.user.listings) {
