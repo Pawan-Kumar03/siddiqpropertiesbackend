@@ -17,6 +17,31 @@ import { body, validationResult } from 'express-validator';
 dotenv.config();
 
 const app = express();
+app.use(cors({ //temp
+  origin: '*',
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true, // Use this only if required
+}));
+
+// const allowedOrigins = [
+//   'https://www.investibayt.com',
+//   'http://www.investibayt.com',  // Updated production frontend
+//   'https://frontend-git-main-pawan-togas-projects.vercel.app', // Development frontend
+//   'http://localhost:3000', // Allow local testing
+// ];
+
+// app.use(cors({
+//   origin: function (origin, callback) {
+//     if (!origin || allowedOrigins.includes(origin)) {
+//       callback(null, true); // Allow requests from allowed origins or no origin (e.g., Postman)
+//     } else {
+//       callback(new Error('Not allowed by CORS'), false);
+//     }
+//   },
+//   methods: ["GET", "POST", "PUT", "DELETE"],
+//   credentials: true,
+// }));
+
 app.use((req, res, next) => {
   if (req.headers['content-type']?.includes('multipart/form-data')) {
     next(); // Skip body-parser for multipart/form-data
@@ -65,25 +90,6 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   })
   .catch(err => console.error('Database connection error:', err));
 
-  const allowedOrigins = [
-    'https://www.investibayt.com',
-    'http://www.investibayt.com',  // Updated production frontend
-    'https://frontend-git-main-pawan-togas-projects.vercel.app', // Development frontend
-    'http://localhost:3000', // Allow local testing
-  ];
-  
-  app.use(cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true); // Allow requests from allowed origins or no origin (e.g., Postman)
-      } else {
-        callback(new Error('Not allowed by CORS'), false);
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  }));
-  
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
