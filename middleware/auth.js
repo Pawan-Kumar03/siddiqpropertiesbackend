@@ -1,21 +1,35 @@
 import jwt from 'jsonwebtoken';
-import User from '../models/User'; // Adjust the path if needed
+import User from './model/User.js'; // Your Mongoose User model
+import dotenv from 'dotenv';
+
+dotenv.config(); // Load environment variables
 
 const auth = async (req, res, next) => {
-  const token = req.header('Authorization');
-  if (!token) {
-    return res.status(401).json({ message: 'No token, authorization denied' });
-  }
-
   try {
-    // Remove 'Bearer ' from token
-    const bearerToken = token.replace('Bearer ', '');
-    const decoded = jwt.verify(bearerToken, process.env.JWT_SECRET);
-    req.user = await User.findById(decoded.userId).select('-password');
-    next();
+    // Extract token from the Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ message: 'Authorization token missing or invalid' });
+    }
+
+    const token = authHeader.split(' ')[1]; // Get the token part
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Find the user from the decoded token payload
+    const user = await User.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({ message: 'User not found' });
+    }
+
+    // Attach user information to the request object
+    req.user = user;
+
+    next(); // Proceed to the next middleware/route
   } catch (error) {
-    console.error('Error in auth middleware:', error);
-    res.status(401).json({ message: 'Token is not valid' });
+    console.error('Authentication error:', error);
+    res.status(401).json({ message: 'Authentication failed', error: error.message });
   }
 };
 

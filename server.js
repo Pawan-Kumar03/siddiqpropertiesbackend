@@ -22,7 +22,11 @@ app.use(cors({ //temp
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true, // Use this only if required
 }));
+const router = express.Router();
 
+// Multer middleware for `multipart/form-data`
+const storage = multer.memoryStorage(); // Store files in memory
+const upload = multer({ storage }); // Initialize Multer
 // const allowedOrigins = [
 //   'https://www.investibayt.com',
 //   'http://www.investibayt.com',  // Updated production frontend
@@ -116,17 +120,17 @@ const uploadSingle = multer({
 // Multer configuration for handling multiple file uploads
 const storageMultiple = multer.memoryStorage();
 
-const upload = multer({
-  storageMultiple,
-  limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit for each file
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-}).array('images', 12); // Handle multiple file uploads with field name 'images'
+// const upload = multer({
+//   storageMultiple,
+//   limits: { fileSize: 100 * 1024 * 1024 }, // 100 MB limit for each file
+//   fileFilter: (req, file, cb) => {
+//     if (file.mimetype.startsWith('image/')) {
+//       cb(null, true);
+//     } else {
+//       cb(new Error('Only image files are allowed!'), false);
+//     }
+//   }
+// }).array('images', 12); // Handle multiple file uploads with field name 'images'
 // app.use('/api/listings', auth);
 const uploadMultiple = multer({
   storage: storageMultiple,
@@ -370,32 +374,10 @@ app.get('/api/user-listings', auth, async (req, res) => {
       res.status(500).json({ message: 'Server Error' });
   }
 });
-app.post('/api/listings', auth, (req, res, next) => {
-  if (req.headers['content-type']?.includes('multipart/form-data')) {
-    upload(req, res, next); // Use multer for file handling
-  } else {
-    res.status(400).json({ message: 'Invalid Content-Type. Use multipart/form-data.' });
-  }
-}, async (req, res) => {
-  const {
-    title, price, city, location, country, propertyType, beds, baths, description,
-    propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
-    reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
-    extension, broker, phone, email, whatsapp, purpose, status, amenities
-  } = req.body;
-
+router.post('/listings', auth, upload.array('images'), async (req, res) => {
   try {
-    const images = req.files
-      ? await Promise.all(
-          req.files.map(async (file) => {
-            const blobName = `${Date.now()}-${file.originalname}`;
-            const blobResult = await put(blobName, file.buffer, { access: 'public' });
-            return blobResult.url;
-          })
-        )
-      : [];
-
-    const listing = new Listing({
+    // Extract fields from the request body
+    const {
       title,
       price,
       city,
@@ -416,27 +398,62 @@ app.post('/api/listings', auth, (req, res, next) => {
       agentCallNumber,
       agentEmail,
       agentWhatsapp,
-      image: images.length === 1 ? images[0] : '',
-      images: images.length > 1 ? images : [],
       extension,
       broker,
-      phone,
       email,
+      phone,
       whatsapp,
       purpose,
       status,
-      amenities: amenities || [],
-      user: req.user._id,
+      landlord,
+      amenities,
+    } = req.body;
+
+    // Handle image files from Multer
+    const images = req.files ? req.files.map(file => file.buffer.toString('base64')) : [];
+
+    // Create a new listing in the database
+    const newListing = new Listing({
+      title,
+      price,
+      city,
+      location,
+      country,
+      propertyType,
+      beds,
+      baths,
+      description,
+      propertyReferenceId,
+      building,
+      neighborhood,
+      developments,
+      landlordName,
+      reraTitleNumber,
+      reraPreRegistrationNumber,
+      agentName,
+      agentCallNumber,
+      agentEmail,
+      agentWhatsapp,
+      extension,
+      broker,
+      email,
+      phone,
+      whatsapp,
+      purpose,
+      status,
+      landlord,
+      amenities: amenities ? amenities.split(',') : [], // Convert amenities to an array
+      images,
+      user: req.user._id, // Authenticated user ID from the `auth` middleware
     });
 
-    const savedListing = await listing.save();
-    req.user.listings.push(savedListing._id);
-    await req.user.save();
+    // Save the listing to the database
+    await newListing.save();
 
-    res.status(201).json(savedListing);
+    res.status(201).json({ message: 'Listing created successfully', listing: newListing });
   } catch (error) {
-    console.error('Error creating listing:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    console.error('Error creating listing:', error.message);
+    res.status(500).json({ message: 'Failed to create listing', error: error.message });
   }
 });
 
