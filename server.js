@@ -44,7 +44,7 @@ app.use(cors({ //temp
 
 app.use((req, res, next) => {
   if (req.headers['content-type']?.includes('multipart/form-data')) {
-    next(); // Skip body-parser for multipart/form-data
+    next(); // Skip JSON body parser for multipart/form-data
   } else {
     bodyParser.json({ limit: '100mb' })(req, res, next);
   }
