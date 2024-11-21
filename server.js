@@ -56,50 +56,25 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   })
   .catch(err => console.error('Database connection error:', err));
 
-// CORS configuration
-const allowedOrigins = [
-  'https://www.investibayt.com',
-  'http://www.investibayt.com',  // Updated production frontend
-  'https://frontend-git-main-pawan-togas-projects.vercel.app', // Other allowed origins
-];
-
-app.use(cors({
-  origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // Handle when no origin (Postman, for example)
-    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowedOrigin => origin.startsWith(allowedOrigin))) {
-      return callback(null, true);
-    } else {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-  },
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true,  // Enable cookies if needed
-}));
-
-
-// app.use(cors({ //for testing purpose
-//   origin: '*', // Allow all origins for testing
-//   methods: ["GET", "POST", "PUT", "DELETE"],
-//   credentials: true,
-// }));
-
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     if (!origin) return callback(null, true); // Handle when there's no origin (e.g., Postman requests)
-//     if (allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))) {
-//       return callback(null, true);
-//     } else {
-//       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-//       return callback(new Error(msg), false);
-//     }
-//   },
-//   methods: ["GET", "POST", "PUT", "DELETE"],
-//   credentials: true,
-// }));
-
-
-
+  const allowedOrigins = [
+    'https://www.investibayt.com',
+    'http://www.investibayt.com',  // Updated production frontend
+    'https://frontend-git-main-pawan-togas-projects.vercel.app', // Development frontend
+    'http://localhost:3000', // Allow local testing
+  ];
+  
+  app.use(cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true); // Allow requests from allowed origins or no origin (e.g., Postman)
+      } else {
+        callback(new Error('Not allowed by CORS'), false);
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  }));
+  
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -450,7 +425,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     res.status(201).json(savedListing);
   } catch (error) {
     console.error('Error creating listing:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: 'Internal Server Error', error: error.message });
   }
 });
 
