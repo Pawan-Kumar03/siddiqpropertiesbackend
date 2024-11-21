@@ -389,6 +389,10 @@ const upload = multer({ storage });
 // Create a new listing route
 router.post('/listings', upload.array('images'), async (req, res) => {
   try {
+    // Log the incoming request for debugging
+    console.log(req.body); // Log form fields (text data)
+    console.log(req.files); // Log the uploaded files
+
     // Extract fields from req.body (populated by multer)
     const {
       title,
