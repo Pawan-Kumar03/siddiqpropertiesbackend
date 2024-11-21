@@ -25,8 +25,8 @@ app.use(cors({ //temp
 const router = express.Router();
 
 // Multer middleware for `multipart/form-data`
-const storage = multer.memoryStorage(); // Store files in memory
-const upload = multer({ storage }); // Initialize Multer
+// const storage = multer.memoryStorage(); // Store files in memory
+// const upload = multer({ storage }); // Initialize Multer
 // const allowedOrigins = [
 //   'https://www.investibayt.com',
 //   'http://www.investibayt.com',  // Updated production frontend
@@ -374,9 +374,14 @@ app.get('/api/user-listings', auth, async (req, res) => {
       res.status(500).json({ message: 'Server Error' });
   }
 });
-router.post('/listings', auth, upload.array('images'), async (req, res) => {
+// Multer setup for handling image uploads
+const storage = multer.memoryStorage(); // Store images in memory (use other storage for production)
+const upload = multer({ storage });
+
+// Create a new listing route
+router.post('/listings', upload.array('images'), async (req, res) => {
   try {
-    // Extract fields from the request body
+    // Extract fields from req.body (populated by multer)
     const {
       title,
       price,
@@ -409,10 +414,13 @@ router.post('/listings', auth, upload.array('images'), async (req, res) => {
       amenities,
     } = req.body;
 
-    // Handle image files from Multer
+    // Handle image uploads (convert to base64 strings)
     const images = req.files ? req.files.map(file => file.buffer.toString('base64')) : [];
 
-    // Create a new listing in the database
+    // Convert amenities into an array (if sent as comma-separated values)
+    const parsedAmenities = amenities ? amenities.split(',') : [];
+
+    // Create a new listing
     const newListing = new Listing({
       title,
       price,
@@ -441,13 +449,13 @@ router.post('/listings', auth, upload.array('images'), async (req, res) => {
       whatsapp,
       purpose,
       status,
-      landlord,
-      amenities: amenities ? amenities.split(',') : [], // Convert amenities to an array
+      landlord: landlord === 'true', // Convert string "true"/"false" to boolean
+      amenities: parsedAmenities,
       images,
-      user: req.user._id, // Authenticated user ID from the `auth` middleware
+      user: req.user._id, // Use `auth` middleware to populate req.user
     });
 
-    // Save the listing to the database
+    // Save to the database
     await newListing.save();
 
     res.status(201).json({ message: 'Listing created successfully', listing: newListing });
@@ -456,8 +464,6 @@ router.post('/listings', auth, upload.array('images'), async (req, res) => {
     res.status(500).json({ message: 'Failed to create listing', error: error.message });
   }
 });
-
-
 
 // Update the PUT route to handle multipart form data
 app.put('/api/listings/:id', auth, uploadMultiple, async (req, res) => {
