@@ -58,14 +58,25 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
 
 // CORS configuration
 const allowedOrigins = [
-  'https://www.investibayt.com', // Updated production frontend
-  'https://frontend-git-main-pawan-togas-projects.vercel.app' // Keeping the old domain in case you need to support both
+  'https://www.investibayt.com',
+  'http://www.investibayt.com',  // Updated production frontend
+  'https://frontend-git-main-pawan-togas-projects.vercel.app', // Other allowed origins
 ];
+
 app.use(cors({
-  origin: 'https://www.investibayt.com',  // Allow only this origin
-  methods: ["GET", "POST", "PUT", "DELETE"],  // Allow only the necessary HTTP methods
-  credentials: true,  // Enable credentials if you're using cookies or authentication tokens
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true); // Handle when no origin (Postman, for example)
+    if (allowedOrigins.includes(origin) || allowedOrigins.some(allowedOrigin => origin.startsWith(allowedOrigin))) {
+      return callback(null, true);
+    } else {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+  },
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true,  // Enable cookies if needed
 }));
+
 
 // app.use(cors({ //for testing purpose
 //   origin: '*', // Allow all origins for testing
