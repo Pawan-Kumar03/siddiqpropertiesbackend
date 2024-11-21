@@ -17,7 +17,16 @@ import { body, validationResult } from 'express-validator';
 dotenv.config();
 
 const app = express();
-app.use(bodyParser.json({ limit: '100mb' }));
+app.use((req, res, next) => {
+  if (req.headers['content-type']?.includes('multipart/form-data')) {
+    next(); // Skip body-parser for multipart/form-data
+  } else {
+    bodyParser.json({ limit: '100mb' })(req, res, next);
+  }
+});
+
+app.use(bodyParser.urlencoded({ extended: false }));
+
 // Authentication Middleware
 const auth = async (req, res, next) => {
   console.log('request: ',req)
@@ -83,8 +92,6 @@ const transporter = nodemailer.createTransport({
       pass: process.env.EMAIL_PASS,
   },
 });
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
 
 // Multer configuration for handling single file upload
 const storageSingle = multer.memoryStorage();
@@ -357,21 +364,19 @@ app.get('/api/user-listings', auth, async (req, res) => {
       res.status(500).json({ message: 'Server Error' });
   }
 });
-app.post('/api/listings', auth, upload, async (req, res) => {
+app.post('/api/listings', auth, (req, res, next) => {
+  if (req.headers['content-type']?.includes('multipart/form-data')) {
+    upload(req, res, next); // Use multer for file handling
+  } else {
+    res.status(400).json({ message: 'Invalid Content-Type. Use multipart/form-data.' });
+  }
+}, async (req, res) => {
   const {
     title, price, city, location, country, propertyType, beds, baths, description,
     propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
     reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
     extension, broker, phone, email, whatsapp, purpose, status, amenities
   } = req.body;
-
-  console.log('Request body:', req.body); // This should now contain the form fields
-  console.log('Uploaded files:', req.files)
-
-  // Check if req.user.listings is defined and an array
-  if (!req.user.listings) {
-    req.user.listings = []; // Initialize if undefined
-  }
 
   try {
     const images = req.files
@@ -389,7 +394,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       price,
       city,
       location,
-      country, // Added country field
+      country,
       propertyType,
       beds,
       baths,
@@ -397,7 +402,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       propertyReferenceId,
       building,
       neighborhood,
-      developments, // Added developments field
+      developments,
       landlordName,
       reraTitleNumber,
       reraPreRegistrationNumber,
@@ -414,8 +419,8 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       whatsapp,
       purpose,
       status,
-      amenities: amenities || [], // Adding amenities to the listing
-      user: req.user._id, // Associate the listing with the logged-in user
+      amenities: amenities || [],
+      user: req.user._id,
     });
 
     const savedListing = await listing.save();
@@ -425,9 +430,10 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     res.status(201).json(savedListing);
   } catch (error) {
     console.error('Error creating listing:', error);
-    res.status(500).json({ message: 'Internal Server Error', error: error.message });
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 
 // Update the PUT route to handle multipart form data
