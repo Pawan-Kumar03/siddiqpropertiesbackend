@@ -3,17 +3,7 @@
   "builds": [
     { "src": "server.js", "use": "@vercel/node", "config": { "maxDuration": 30 } }
   ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "server.js" },
-    { "source": "/(.*)", "destination": "/" }
-  ],
-  "headers": [
-    {
-      "source": "/api/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache" },
-        { "key": "Content-Type", "value": "application/json" }
-      ]
-    }
+  "routes": [
+    { "src": "/(.*)", "dest": "server.js" }
   ]
 }
