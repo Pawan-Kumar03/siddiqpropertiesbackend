@@ -375,7 +375,15 @@ app.get('/api/user-listings', auth, async (req, res) => {
   }
 });
 // Multer setup for handling image uploads
-const storage = multer.memoryStorage(); // Store images in memory (use other storage for production)
+// Set up multer storage and file handling
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './uploads/'); // Folder where files will be stored
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname); // Unique filename
+  }
+});// Store images in memory (use other storage for production)
 const upload = multer({ storage });
 
 // Create a new listing route
