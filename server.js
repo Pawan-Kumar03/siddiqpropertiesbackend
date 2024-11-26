@@ -4,78 +4,45 @@ import cors from 'cors';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
-import twilio from 'twilio';
-import Listing from './models/Listing.js';
-import { put } from '@vercel/blob'; 
+import { put } from '@vercel/blob'; // Import Vercel Blob SDK
 import User from './models/User.js';
-import Agent from './models/Agent.js'
-import bcrypt from 'bcryptjs';
+import Agent from './models/Agent.js';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer'; 
-import crypto from 'crypto'; 
-import { body, validationResult } from 'express-validator';
-import { fileURLToPath } from 'url';  // Import to fix __dirname
-import { dirname } from 'path';  // Import to fix __dirname
-import path from 'path';  // Import path module
-import fs from 'fs';  // Import fs module
+import path from 'path';
 
 dotenv.config();
 
 const app = express();
 const router = express.Router();
 
-// Fix for __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Vercel Blob storage is used, and the file is uploaded directly there.
+const storage = multer.memoryStorage();  // Use memory storage as we're going to upload directly to Vercel Blob
+const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('profilePhoto');  // Limit the file size to 10MB
 
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log('Uploads directory created');
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir); // Set the file destination to 'uploads/'
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname); // Set the filename
-  },
-});
-
-const uploadd = multer({ storage: storage });
-
-app.use(bodyParser.json({limit: '100mb'}));
-app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
+app.use(bodyParser.json({ limit: '100mb' }));
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 app.use(express.json());
 
 // Authentication Middleware
 const auth = async (req, res, next) => {
-  console.log('request: ',req)
   const token = req.header('Authorization')?.replace('Bearer ', '');
-  console.log('Token received:', token); // Log the token for debugging
- 
   if (!token) {
     return res.status(401).json({ message: 'No token, authorization denied' });
   }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // console.log('Decoded token:', decoded); // Log the decoded token for debugging
-    
     req.user = await User.findById(decoded.userId).select('-password');
     if (!req.user) {
       return res.status(404).json({ message: 'User not found' });
     }
     next();
   } catch (error) {
-    alert('Session has ended, please login again.');
     res.status(401).json({ message: 'Token is not valid', error: error.message });
   }
 };
 
-// Define your POST route with file upload middleware
-app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) => {
+app.post('/api/agent-profile', upload, async (req, res) => {
   const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
 
   // Check if all required fields are present
@@ -84,24 +51,22 @@ app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) 
   }
 
   try {
-    // Handle profile photo upload to cloud storage (e.g., Azure Blob Storage, S3)
-    const profilePhotoUrl = req.files
-      ? await Promise.all(
-          req.files.map(async (file) => {
-            const blobName = `${Date.now()}-${file.originalname}`;
-            const blobResult = await put(blobName, file.buffer, { access: 'public' });
-            return blobResult.url;
-          })
-        )
-      : [];
+    // Handle profile photo upload to Vercel Blob storage
+    let profilePhotoUrl = '';
 
-    // Create or update the agent profile in your database
+    if (req.file) {
+      const blobName = `${Date.now()}-${req.file.originalname}`;
+      const blobResult = await put(blobName, req.file.buffer, { access: 'public' });
+      profilePhotoUrl = blobResult.url;
+    }
+
+    // Create or update the agent profile in the database
     const agent = new Agent({
       agentName,
       agentEmail,
       contactNumber,
       contactWhatsApp,
-      profilePhoto: profilePhotoUrl, // Store the URL of the uploaded image
+      profilePhoto: profilePhotoUrl, // Store the URL of the uploaded image from Blob storage
     });
 
     // Save the agent profile to the database
@@ -116,7 +81,7 @@ app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) 
 // Mount the router at the appropriate endpoint
 app.use(router);
 
-// Connect to MongoDB
+// MongoDB Connection
 const mongoURI = process.env.MONGO_URI;
 
 mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, dbName: 'PropertySales' })
@@ -128,7 +93,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   .catch(err => console.error('Database connection error:', err));
 
 // Allow requests from your frontend domain
-const allowedOrigins = ['https://www.investibayt.com','http://www.investibayt.com'];
+const allowedOrigins = ['https://www.investibayt.com', 'http://www.investibayt.com'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -141,9 +106,8 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
-
-
 app.use(cors(corsOptions));
+
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -172,17 +136,6 @@ const uploadSingle = multer({
 // Multer configuration for handling multiple file uploads
 const storageMultiple = multer.memoryStorage();
 
-const upload = multer({
-  storageMultiple,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit for each file
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only image files are allowed!'), false);
-    }
-  }
-}).array('images', 12); // Handle multiple file uploads with field name 'images'
 // app.use('/api/listings', auth);
 const uploadMultiple = multer({
   storage: storageMultiple,
