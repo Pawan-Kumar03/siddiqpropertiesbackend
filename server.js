@@ -80,7 +80,7 @@ app.post('/api/agent-profile', upload, async (req, res) => {
 
     // Save the agent profile to the database
     await agent.save();
-    res.status(201).json(agent); // Send the created agent object in the response
+    res.status(201).json({ message: 'Agent profile created successfully!' });
   } catch (error) {
     console.error('Error saving agent profile:', error);
     res.status(500).json({ message: 'Internal Server Error' });
