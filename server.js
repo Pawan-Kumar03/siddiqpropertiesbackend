@@ -47,8 +47,20 @@ const auth = async (req, res, next) => {
 
   }
 };
-// POST route to create or update agent profile\
-router.post('/api/agent-profile', auth, uploadSingle, async (req, res) => {
+// Initialize storage for multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/'); // Set the file destination
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname); // Set the filename
+  },
+});
+
+const uploadd = multer({ storage: storage });
+
+// Define your POST route with file upload middleware
+app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) => {
   const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
 
   // Check if all required fields are present
@@ -81,6 +93,7 @@ router.post('/api/agent-profile', auth, uploadSingle, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 // Mount the router at the appropriate endpoint
 app.use(router);
 
@@ -95,17 +108,20 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   })
   .catch(err => console.error('Database connection error:', err));
 
-// CORS configuration
-const allowedOrigins = [
-  'https://www.investibayt.com', // Updated production frontend
-  'https://frontend-git-main-pawan-togas-projects.vercel.app' // Keeping the old domain in case you need to support both
-];
-app.use(cors({
-  origin: 'https://www.investibayt.com',  // Allow only this origin
-  methods: ["GET", "POST", "PUT", "DELETE"],  // Allow only the necessary HTTP methods
-  credentials: true,  // Enable credentials if you're using cookies or authentication tokens
-}));
-
+// Allow requests from your frontend domain
+const allowedOrigins = ['https://www.investibayt.com','http://www.investibayt.com'];
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+app.use(cors(corsOptions));
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
