@@ -19,6 +19,8 @@ dotenv.config();
 
 const app = express();
 const router = express.Router();
+
+const uploadd = multer({ storage: storage });
 app.use(bodyParser.json({limit: '100mb'}));
 app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
 app.use(express.json());
@@ -49,7 +51,6 @@ const auth = async (req, res, next) => {
 };
 const fs = require('fs');
 const path = require('path');
-const multer = require('multer');
 
 // Ensure the uploads directory exists
 const uploadDir = path.join(__dirname, 'uploads');
@@ -68,7 +69,6 @@ const storage = multer.diskStorage({
   },
 });
 
-const uploadd = multer({ storage: storage });
 
 // Define your POST route with file upload middleware
 app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) => {
