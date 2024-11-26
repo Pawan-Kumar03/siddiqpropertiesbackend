@@ -4,11 +4,20 @@ import cors from 'cors';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
-import { put } from '@vercel/blob'; // Import Vercel Blob SDK
+import twilio from 'twilio';
+import Listing from './models/Listing.js';
+import { put } from '@vercel/blob'; 
 import User from './models/User.js';
-import Agent from './models/Agent.js';
+import Agent from './models/Agent.js'
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import path from 'path';
+import nodemailer from 'nodemailer'; 
+import crypto from 'crypto'; 
+import { body, validationResult } from 'express-validator';
+import { fileURLToPath } from 'url';  // Import to fix __dirname
+import { dirname } from 'path';  // Import to fix __dirname
+import path from 'path';  // Import path module
+import fs from 'fs';  // Import fs module
 
 dotenv.config();
 
@@ -93,19 +102,30 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   .catch(err => console.error('Database connection error:', err));
 
 // Allow requests from your frontend domain
-const allowedOrigins = ['https://www.investibayt.com', 'http://www.investibayt.com'];
+// const allowedOrigins = ['https://www.investibayt.com', 'http://www.investibayt.com'];
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     if (allowedOrigins.indexOf(origin) !== -1) {
+//       callback(null, true);
+//     } else {
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+// };
+
+// app.use(cors(corsOptions));
+// CORS Options allowing all origins
 const corsOptions = {
-  origin: function (origin, callback) {
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: true,  // This allows all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  preflightContinue: false,
+  optionsSuccessStatus: 200,
 };
 
+// Apply CORS middleware globally
 app.use(cors(corsOptions));
 
 // Email setup (using nodemailer)
