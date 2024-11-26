@@ -16,7 +16,8 @@ import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import { fileURLToPath } from 'url';  // Import to fix __dirname
 import { dirname } from 'path';  // Import to fix __dirname
-import path from 'path';
+import path from 'path';  // Import path module
+import fs from 'fs';  // Import fs module
 
 dotenv.config();
 
@@ -138,6 +139,7 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
+
 
 
 app.use(cors(corsOptions));
