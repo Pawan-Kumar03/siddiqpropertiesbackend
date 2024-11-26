@@ -85,14 +85,15 @@ app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) 
 
   try {
     // Handle profile photo upload to cloud storage (e.g., Azure Blob Storage, S3)
-    let profilePhotoUrl = '';
-    if (req.file) {
-      const blobName = `${Date.now()}-${req.file.originalname}`;
-      
-      // Upload the image to the cloud storage and get the public URL
-      const blobResult = await put(blobName, req.file.buffer, { access: 'public' }); // replace `put` with the actual method for cloud storage you are using
-      profilePhotoUrl = blobResult.url; // Get the URL of the uploaded image
-    }
+    const profilePhotoUrl = req.files
+      ? await Promise.all(
+          req.files.map(async (file) => {
+            const blobName = `${Date.now()}-${file.originalname}`;
+            const blobResult = await put(blobName, file.buffer, { access: 'public' });
+            return blobResult.url;
+          })
+        )
+      : [];
 
     // Create or update the agent profile in your database
     const agent = new Agent({
@@ -195,9 +196,6 @@ const uploadMultiple = multer({
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
-
-
-
 app.post('/api/signup', [
   body('name').not().isEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Please provide a valid email'),
@@ -231,7 +229,6 @@ app.post('/api/signup', [
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 app.post('/api/login', [
   body('email').isEmail().withMessage('Please provide a valid email'),
@@ -368,7 +365,6 @@ app.post('/api/refresh-token', auth, async (req, res) => {
       res.status(500).json({ message: 'Server error' });
   }
 });
-
 
 // Check verification status
 app.get('/api/verify/status', auth, async (req, res) => {
