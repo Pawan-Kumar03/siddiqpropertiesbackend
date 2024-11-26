@@ -69,28 +69,6 @@ app.use(cors({
   credentials: true,  // Enable credentials if you're using cookies or authentication tokens
 }));
 
-// app.use(cors({ //for testing purpose
-//   origin: '*', // Allow all origins for testing
-//   methods: ["GET", "POST", "PUT", "DELETE"],
-//   credentials: true,
-// }));
-
-// app.use(cors({
-//   origin: function (origin, callback) {
-//     if (!origin) return callback(null, true); // Handle when there's no origin (e.g., Postman requests)
-//     if (allowedOrigins.some((allowedOrigin) => origin.startsWith(allowedOrigin))) {
-//       return callback(null, true);
-//     } else {
-//       const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-//       return callback(new Error(msg), false);
-//     }
-//   },
-//   methods: ["GET", "POST", "PUT", "DELETE"],
-//   credentials: true,
-// }));
-
-
-
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -142,6 +120,42 @@ const uploadMultiple = multer({
     }
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
+
+// POST route to create or update agent profile
+router.post('/api/agent-profile', auth, upload, async (req, res) => {
+  const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
+
+  // Check if all required fields are present
+  if (!agentName || !agentEmail || !contactNumber || !contactWhatsApp) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
+
+  try {
+    // Handle profile photo upload to blob storage
+    let profilePhotoUrl = '';
+    if (req.file) {
+      const blobName = `${Date.now()}-${req.file.originalname}`;
+      const blobResult = await put(blobName, req.file.buffer, { access: 'public' });
+      profilePhotoUrl = blobResult.url; // Get the URL of the uploaded image
+    }
+
+    // Create or update the agent profile
+    const agent = new Agent({
+      agentName,
+      agentEmail,
+      contactNumber,
+      contactWhatsApp,
+      profilePhoto: profilePhotoUrl, // Save the URL of the uploaded image
+    });
+
+    await agent.save();
+    res.status(201).json(agent); // Send the created agent object in the response
+  } catch (error) {
+    console.error('Error saving agent profile:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
 
 app.post('/api/signup', [
   body('name').not().isEmpty().withMessage('Name is required'),
@@ -373,6 +387,7 @@ app.get('/api/user-listings', auth, async (req, res) => {
       res.status(500).json({ message: 'Server Error' });
   }
 });
+
 app.post('/api/listings', auth, upload, async (req, res) => {
   const {
     title, price, city, location, country, propertyType, beds, baths, description,
