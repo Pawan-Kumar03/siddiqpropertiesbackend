@@ -16,6 +16,7 @@ import crypto from 'crypto';
 import { body, validationResult } from 'express-validator';
 import { fileURLToPath } from 'url';  // Import to fix __dirname
 import { dirname } from 'path';  // Import to fix __dirname
+import path from 'path';
 
 dotenv.config();
 
