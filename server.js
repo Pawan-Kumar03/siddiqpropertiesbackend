@@ -47,10 +47,21 @@ const auth = async (req, res, next) => {
 
   }
 };
+const fs = require('fs');
+const path = require('path');
+const multer = require('multer');
+
+// Ensure the uploads directory exists
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('Uploads directory created');
+}
+
 // Initialize storage for multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Set the file destination
+    cb(null, uploadDir); // Set the file destination to 'uploads/'
   },
   filename: function (req, file, cb) {
     cb(null, Date.now() + '-' + file.originalname); // Set the filename
