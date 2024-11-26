@@ -20,10 +20,32 @@ dotenv.config();
 const app = express();
 const router = express.Router();
 
+// Ensure the uploads directory exists
+const fs = require('fs');
+const path = require('path');
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+  console.log('Uploads directory created');
+}
+
+// Initialize storage for multer
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir); // Set the file destination to 'uploads/'
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname); // Set the filename
+  },
+});
+
+// Initialize multer with the storage configuration
 const uploadd = multer({ storage: storage });
+
 app.use(bodyParser.json({limit: '100mb'}));
 app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
 app.use(express.json());
+
 // Authentication Middleware
 const auth = async (req, res, next) => {
   console.log('request: ',req)
@@ -46,29 +68,8 @@ const auth = async (req, res, next) => {
   } catch (error) {
     alert('Session has ended, please login again.');
     res.status(401).json({ message: 'Token is not valid', error: error.message });
-
   }
 };
-const fs = require('fs');
-const path = require('path');
-
-// Ensure the uploads directory exists
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-  console.log('Uploads directory created');
-}
-
-// Initialize storage for multer
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir); // Set the file destination to 'uploads/'
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname); // Set the filename
-  },
-});
-
 
 // Define your POST route with file upload middleware
 app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) => {
@@ -108,7 +109,6 @@ app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) 
   }
 });
 
-
 // Mount the router at the appropriate endpoint
 app.use(router);
 
@@ -124,7 +124,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   .catch(err => console.error('Database connection error:', err));
 
 // Allow requests from your frontend domain
-const allowedOrigins = ['https://www.investibayt.com','http://www.investibayt.com'];
+const allowedOrigins = ['https://www.investibayt.com', 'http://www.investibayt.com'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1) {
@@ -136,6 +136,7 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
+
 app.use(cors(corsOptions));
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
