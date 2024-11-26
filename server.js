@@ -116,15 +116,16 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
 // };
 
 // app.use(cors(corsOptions));
-// CORS Options allowing all origins
-const corsOptions = {
-  origin: true,  // This allows all origins
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  preflightContinue: false,
-  optionsSuccessStatus: 200,
-};
+// Enable CORS
+app.use(cors({
+  origin: 'https://www.investibayt.com', // Allow only this frontend domain
+  methods: ['GET', 'POST'], // Allow only these methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
+}));
 
+// Middleware for parsing form data (if needed)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 // Apply CORS middleware globally
 app.use(cors(corsOptions));
 
