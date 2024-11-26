@@ -83,7 +83,8 @@ app.post('/api/agent-profile', upload, async (req, res) => {
     res.status(201).json({ message: 'Agent profile created successfully!' });
   } catch (error) {
     console.error('Error saving agent profile:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
+res.status(500).json({ message: 'Internal Server Error', error: error.message });
+
   }
 });
 
@@ -127,7 +128,8 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 // Apply CORS middleware globally
-app.use(cors(corsOptions));
+app.use(cors());
+
 
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
