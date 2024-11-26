@@ -14,15 +14,18 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 import crypto from 'crypto'; 
 import { body, validationResult } from 'express-validator';
-import fs from 'fs';
-import path from 'path';
+import { fileURLToPath } from 'url';  // Import to fix __dirname
+import { dirname } from 'path';  // Import to fix __dirname
 
 dotenv.config();
 
 const app = express();
 const router = express.Router();
 
-// Initialize storage for multer before using it
+// Fix for __dirname in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
@@ -134,6 +137,7 @@ const corsOptions = {
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
+
 
 app.use(cors(corsOptions));
 // Email setup (using nodemailer)
