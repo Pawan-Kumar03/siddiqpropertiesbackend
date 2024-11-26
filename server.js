@@ -14,22 +14,21 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 import crypto from 'crypto'; 
 import { body, validationResult } from 'express-validator';
+import fs from 'fs';
+import path from 'path';
 
 dotenv.config();
 
 const app = express();
 const router = express.Router();
 
-// Ensure the uploads directory exists
-const fs = require('fs');
-const path = require('path');
+// Initialize storage for multer before using it
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   console.log('Uploads directory created');
 }
 
-// Initialize storage for multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir); // Set the file destination to 'uploads/'
@@ -39,7 +38,6 @@ const storage = multer.diskStorage({
   },
 });
 
-// Initialize multer with the storage configuration
 const uploadd = multer({ storage: storage });
 
 app.use(bodyParser.json({limit: '100mb'}));
@@ -124,7 +122,7 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   .catch(err => console.error('Database connection error:', err));
 
 // Allow requests from your frontend domain
-const allowedOrigins = ['https://www.investibayt.com', 'http://www.investibayt.com'];
+const allowedOrigins = ['https://www.investibayt.com','http://www.investibayt.com'];
 const corsOptions = {
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1) {
