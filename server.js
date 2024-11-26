@@ -69,23 +69,26 @@ app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) 
   }
 
   try {
-    // Handle profile photo upload to blob storage
+    // Handle profile photo upload to cloud storage (e.g., Azure Blob Storage, S3)
     let profilePhotoUrl = '';
     if (req.file) {
       const blobName = `${Date.now()}-${req.file.originalname}`;
-      const blobResult = await put(blobName, req.file.buffer, { access: 'public' });
+      
+      // Upload the image to the cloud storage and get the public URL
+      const blobResult = await put(blobName, req.file.buffer, { access: 'public' }); // replace `put` with the actual method for cloud storage you are using
       profilePhotoUrl = blobResult.url; // Get the URL of the uploaded image
     }
 
-    // Create or update the agent profile
+    // Create or update the agent profile in your database
     const agent = new Agent({
       agentName,
       agentEmail,
       contactNumber,
       contactWhatsApp,
-      profilePhoto: profilePhotoUrl, // Save the URL of the uploaded image
+      profilePhoto: profilePhotoUrl, // Store the URL of the uploaded image
     });
 
+    // Save the agent profile to the database
     await agent.save();
     res.status(201).json(agent); // Send the created agent object in the response
   } catch (error) {
@@ -93,6 +96,7 @@ app.post('/api/agent-profile', uploadd.single('profilePhoto'), async (req, res) 
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 // Mount the router at the appropriate endpoint
 app.use(router);
