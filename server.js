@@ -8,6 +8,7 @@ import twilio from 'twilio';
 import Listing from './models/Listing.js';
 import { put } from '@vercel/blob'; 
 import User from './models/User.js';
+import Agent from './models/Agent.js'
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
@@ -17,6 +18,7 @@ import { body, validationResult } from 'express-validator';
 dotenv.config();
 
 const app = express();
+const router = express.Router();
 app.use(bodyParser.json({limit: '100mb'}));
 app.use(bodyParser.urlencoded({limit: '100mb', extended: true}));
 app.use(express.json());
@@ -45,7 +47,42 @@ const auth = async (req, res, next) => {
 
   }
 };
+// POST route to create or update agent profile\
+router.post('/api/agent-profile', auth, uploadSingle, async (req, res) => {
+  const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
 
+  // Check if all required fields are present
+  if (!agentName || !agentEmail || !contactNumber || !contactWhatsApp) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
+
+  try {
+    // Handle profile photo upload to blob storage
+    let profilePhotoUrl = '';
+    if (req.file) {
+      const blobName = `${Date.now()}-${req.file.originalname}`;
+      const blobResult = await put(blobName, req.file.buffer, { access: 'public' });
+      profilePhotoUrl = blobResult.url; // Get the URL of the uploaded image
+    }
+
+    // Create or update the agent profile
+    const agent = new Agent({
+      agentName,
+      agentEmail,
+      contactNumber,
+      contactWhatsApp,
+      profilePhoto: profilePhotoUrl, // Save the URL of the uploaded image
+    });
+
+    await agent.save();
+    res.status(201).json(agent); // Send the created agent object in the response
+  } catch (error) {
+    console.error('Error saving agent profile:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+// Mount the router at the appropriate endpoint
+app.use(router);
 
 // Connect to MongoDB
 const mongoURI = process.env.MONGO_URI;
@@ -121,40 +158,7 @@ const uploadMultiple = multer({
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
-// POST route to create or update agent profile
-router.post('/api/agent-profile', auth, upload, async (req, res) => {
-  const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
 
-  // Check if all required fields are present
-  if (!agentName || !agentEmail || !contactNumber || !contactWhatsApp) {
-    return res.status(400).json({ message: 'All fields are required.' });
-  }
-
-  try {
-    // Handle profile photo upload to blob storage
-    let profilePhotoUrl = '';
-    if (req.file) {
-      const blobName = `${Date.now()}-${req.file.originalname}`;
-      const blobResult = await put(blobName, req.file.buffer, { access: 'public' });
-      profilePhotoUrl = blobResult.url; // Get the URL of the uploaded image
-    }
-
-    // Create or update the agent profile
-    const agent = new Agent({
-      agentName,
-      agentEmail,
-      contactNumber,
-      contactWhatsApp,
-      profilePhoto: profilePhotoUrl, // Save the URL of the uploaded image
-    });
-
-    await agent.save();
-    res.status(201).json(agent); // Send the created agent object in the response
-  } catch (error) {
-    console.error('Error saving agent profile:', error);
-    res.status(500).json({ message: 'Internal Server Error' });
-  }
-});
 
 
 app.post('/api/signup', [
