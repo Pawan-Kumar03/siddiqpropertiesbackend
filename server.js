@@ -60,11 +60,6 @@ app.post('/api/agent-profile', upload, async (req, res) => {
   }
 
   try {
-    let userAgent = await Agent.findOne({ agentEmail });
-    if (userAgent) {
-      return res.status(400).json({ message: 'Agent profile already exists.' });
-    }
-    
     // Handle profile photo upload to Vercel Blob storage
     let profilePhotoUrl = '';
 
