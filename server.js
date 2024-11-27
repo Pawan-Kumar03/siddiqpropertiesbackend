@@ -14,10 +14,6 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 import crypto from 'crypto'; 
 import { body, validationResult } from 'express-validator';
-import { fileURLToPath } from 'url';  // Import to fix __dirname
-import { dirname } from 'path';  // Import to fix __dirname
-import path from 'path';  // Import path module
-import fs from 'fs';  // Import fs module
 
 dotenv.config();
 
@@ -69,7 +65,6 @@ app.post('/api/agent-profile', upload, async (req, res) => {
       profilePhotoUrl = blobResult.url;
     }
 
-    
     // Create or update the agent profile in the database
     const agent = new Agent({
       agentName,
@@ -84,8 +79,37 @@ app.post('/api/agent-profile', upload, async (req, res) => {
     res.status(201).json({ message: 'Agent profile created successfully!' });
   } catch (error) {
     console.error('Error saving agent profile:', error);
-res.status(500).json({ message: 'Internal Server Error', error: error.message });
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+// Route to create a broker profile
+router.post('/api/broker-profile', upload.single('reraIDCard'), async (req, res) => {
+  const { reraBrokerID, companyLicenseNumber, companyTelephoneNumber } = req.body;
 
+  // Validate required fields
+  if (!reraBrokerID || !companyLicenseNumber || !companyTelephoneNumber || !req.file) {
+    return res.status(400).json({ message: 'All fields are required.' });
+  }
+
+  try {
+    // Upload RERA ID Card to Vercel Blob storage
+    const blobName = `${Date.now()}-${req.file.originalname}`;
+    const blobResult = await put(blobName, req.file.buffer, { access: 'public' });
+    const reraIDCardUrl = blobResult.url;
+
+    // Create new broker profile in the database
+    const broker = new Broker({
+      reraBrokerID,
+      companyLicenseNumber,
+      companyTelephoneNumber,
+      reraIDCardUrl,
+    });
+
+    await broker.save();
+    res.status(201).json({ message: 'Broker profile created successfully!', broker });
+  } catch (error) {
+    console.error('Error saving broker profile:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
   }
 });
 
@@ -103,25 +127,10 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
   })
   .catch(err => console.error('Database connection error:', err));
 
-// Allow requests from your frontend domain
-// const allowedOrigins = ['https://www.investibayt.com', 'http://www.investibayt.com'];
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//     if (allowedOrigins.indexOf(origin) !== -1) {
-//       callback(null, true);
-//     } else {
-//       callback(new Error('Not allowed by CORS'));
-//     }
-//   },
-//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-//   allowedHeaders: ['Content-Type', 'Authorization'],
-// };
-
-// app.use(cors(corsOptions));
 // Enable CORS
 app.use(cors({
   origin: 'https://www.investibayt.com', // Allow only this frontend domain
-  methods: ['GET', 'POST'], // Allow only these methods
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
   allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
 }));
 
