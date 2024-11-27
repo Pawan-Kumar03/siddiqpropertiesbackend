@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const brokerSchema = new mongoose.Schema({
   reraBrokerID: { type: String, required: true },
@@ -7,4 +7,6 @@ const brokerSchema = new mongoose.Schema({
   reraIDCardUrl: { type: String, required: true }, // Store the link to the RERA ID Card
 }, { timestamps: true });
 
-module.exports = mongoose.model('Broker', brokerSchema);
+const Broker = mongoose.model('Broker', brokerSchema);
+
+export default Broker;
