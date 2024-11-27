@@ -94,7 +94,7 @@ const uploadBrokerID = multer({
 }).single('reraIDCard'); // Use 'reraIDCard' as the field name
 
 // Broker Profile Route
-router.post('/api/broker-profile', uploadBrokerID, async (req, res) => {
+app.post('/api/broker-profile', uploadBrokerID, async (req, res) => {
   const { reraBrokerID, companyLicenseNumber, companyTelephoneNumber } = req.body;
 
   if (!reraBrokerID || !companyLicenseNumber || !companyTelephoneNumber || !req.file) {
