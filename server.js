@@ -88,8 +88,13 @@ app.post('/api/agent-profile', upload, async (req, res) => {
   }
 });
 
+const uploadBrokerID = multer({ 
+  storage: storage, 
+  limits: { fileSize: 10 * 1024 * 1024 } 
+}).single('reraIDCard'); // Use 'reraIDCard' as the field name
+
 // Broker Profile Route
-router.post('/api/broker-profile', upload, async (req, res) => {
+router.post('/api/broker-profile', uploadBrokerID, async (req, res) => {
   const { reraBrokerID, companyLicenseNumber, companyTelephoneNumber } = req.body;
 
   if (!reraBrokerID || !companyLicenseNumber || !companyTelephoneNumber || !req.file) {
