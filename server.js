@@ -59,7 +59,7 @@ const auth = async (req, res, next) => {
 };
 
 // Agent Profile Route
-app.post('/api/agent-profile', upload, async (req, res) => {
+router.post('/api/agent-profile', upload, async (req, res) => {
   const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
 
   if (!agentName || !agentEmail || !contactNumber || !contactWhatsApp) {
@@ -127,6 +127,9 @@ router.post('/api/broker-profile', uploadBrokerID, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+// Mount the router with a base path
+app.use('/api', router);
 
 // Mount Router
 app.use(router);
