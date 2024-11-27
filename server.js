@@ -4,30 +4,32 @@ import cors from 'cors';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
-import twilio from 'twilio';
-import Listing from './models/Listing.js';
-import { put } from '@vercel/blob'; 
-import User from './models/User.js';
-import Agent from './models/Agent.js'
-import Broker from './models/Broker.js'
-import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import nodemailer from 'nodemailer'; 
-import crypto from 'crypto'; 
-import { body, validationResult } from 'express-validator';
+import { put } from '@vercel/blob';
+import Listing from './models/Listing.js';
+import User from './models/User.js';
+import Agent from './models/Agent.js';
+import Broker from './models/Broker.js';
 
 dotenv.config();
 
 const app = express();
 const router = express.Router();
 
-// Vercel Blob storage is used, and the file is uploaded directly there.
-const storage = multer.memoryStorage();  // Use memory storage as we're going to upload directly to Vercel Blob
-const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('profilePhoto');  // Limit the file size to 10MB
+// Enable CORS
+app.use(cors({
+  origin: 'https://www.investibayt.com', // Allow your frontend domain
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
+}));
 
+// Middleware for parsing requests
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
-app.use(express.json());
+
+// Configure Multer for file uploads
+const storage = multer.memoryStorage(); // Use memory storage for direct Blob uploads
+const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('profilePhoto'); // Limit file size to 10MB
 
 // Authentication Middleware
 const auth = async (req, res, next) => {
@@ -48,16 +50,15 @@ const auth = async (req, res, next) => {
   }
 };
 
+// Agent Profile Route
 app.post('/api/agent-profile', upload, async (req, res) => {
   const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
 
-  // Check if all required fields are present
   if (!agentName || !agentEmail || !contactNumber || !contactWhatsApp) {
     return res.status(400).json({ message: 'All fields are required.' });
   }
 
   try {
-    // Handle profile photo upload to Vercel Blob storage
     let profilePhotoUrl = '';
 
     if (req.file) {
@@ -66,16 +67,14 @@ app.post('/api/agent-profile', upload, async (req, res) => {
       profilePhotoUrl = blobResult.url;
     }
 
-    // Create or update the agent profile in the database
     const agent = new Agent({
       agentName,
       agentEmail,
       contactNumber,
       contactWhatsApp,
-      profilePhoto: profilePhotoUrl, // Store the URL of the uploaded image from Blob storage
+      profilePhoto: profilePhotoUrl,
     });
 
-    // Save the agent profile to the database
     await agent.save();
     res.status(201).json({ message: 'Agent profile created successfully!' });
   } catch (error) {
@@ -83,17 +82,16 @@ app.post('/api/agent-profile', upload, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-// Route to create a broker profile
-router.post('/api/broker-profile',  upload, async (req, res) => {
+
+// Broker Profile Route
+router.post('/api/broker-profile', upload, async (req, res) => {
   const { reraBrokerID, companyLicenseNumber, companyTelephoneNumber } = req.body;
 
-  // Validate required fields
   if (!reraBrokerID || !companyLicenseNumber || !companyTelephoneNumber || !req.file) {
     return res.status(400).json({ message: 'All fields are required.' });
   }
 
   try {
-    // Handle profile photo upload to Vercel Blob storage
     let brokerIDUrl = '';
 
     if (req.file) {
@@ -102,13 +100,11 @@ router.post('/api/broker-profile',  upload, async (req, res) => {
       brokerIDUrl = blobResult.url;
     }
 
-  
-    // Create new broker profile in the database
     const broker = new Broker({
       reraBrokerID,
       companyLicenseNumber,
       companyTelephoneNumber,
-      reraIDCardUrl:brokerIDUrl,
+      reraIDCardUrl: brokerIDUrl,
     });
 
     await broker.save();
@@ -119,7 +115,7 @@ router.post('/api/broker-profile',  upload, async (req, res) => {
   }
 });
 
-// Mount the router at the appropriate endpoint
+// Mount Router
 app.use(router);
 
 // MongoDB Connection
@@ -132,19 +128,6 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch(err => console.error('Database connection error:', err));
-
-// Enable CORS
-app.use(cors({
-  origin: 'https://www.investibayt.com', // Allow only this frontend domain
-  methods: ['GET', 'POST', 'PUT', 'DELETE'], 
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allow specific headers
-}));
-
-// Middleware for parsing form data (if needed)
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-// Apply CORS middleware globally
-app.use(cors());
 
 
 // Email setup (using nodemailer)
