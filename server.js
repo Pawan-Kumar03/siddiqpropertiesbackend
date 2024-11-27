@@ -4,12 +4,17 @@ import cors from 'cors';
 import multer from 'multer';
 import dotenv from 'dotenv';
 import bodyParser from 'body-parser';
-import jwt from 'jsonwebtoken';
-import { put } from '@vercel/blob';
+import twilio from 'twilio';
 import Listing from './models/Listing.js';
+import { put } from '@vercel/blob'; 
 import User from './models/User.js';
-import Agent from './models/Agent.js';
-import Broker from './models/Broker.js';
+import Agent from './models/Agent.js'
+import Broker from './models/Broker.js'
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer'; 
+import crypto from 'crypto'; 
+import { body, validationResult } from 'express-validator';
 
 dotenv.config();
 
@@ -128,7 +133,6 @@ mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true, db
     app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   })
   .catch(err => console.error('Database connection error:', err));
-
 
 // Email setup (using nodemailer)
 const transporter = nodemailer.createTransport({
