@@ -29,16 +29,13 @@ app.use(cors({
 }));
 
 // Middleware for parsing requests
-app.use(bodyParser.json({ limit: '20mb' })); // Increase JSON payload size limit
-app.use(bodyParser.urlencoded({ limit: '20mb', extended: true })); // Increase URL-encoded payload size limit
+app.use(bodyParser.json({ limit: '100mb' }));
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 // Configure Multer for file uploads
 const storage = multer.memoryStorage(); // Use memory storage for direct Blob uploads
-// Configure Multer for file uploads
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 10 * 1024 * 1024 }, // Limit file size to 10MB per file
-});
+const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('profilePhoto'); // Limit file size to 10MB
+
 // Authentication Middleware
 const auth = async (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
@@ -59,7 +56,7 @@ const auth = async (req, res, next) => {
 };
 
 // Agent Profile Route
-router.post('/api/agent-profile', upload, async (req, res) => {
+app.post('/api/agent-profile', upload, async (req, res) => {
   const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
 
   if (!agentName || !agentEmail || !contactNumber || !contactWhatsApp) {
@@ -127,9 +124,6 @@ router.post('/api/broker-profile', uploadBrokerID, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
-
-// Mount the router with a base path
-app.use('/api', router);
 
 // Mount Router
 app.use(router);
