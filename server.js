@@ -84,7 +84,7 @@ app.post('/api/agent-profile', upload, async (req, res) => {
   }
 });
 // Route to create a broker profile
-router.post('/api/broker-profile', upload.single('reraIDCard'), async (req, res) => {
+router.post('/api/broker-profile',  upload, async (req, res) => {
   const { reraBrokerID, companyLicenseNumber, companyTelephoneNumber } = req.body;
 
   // Validate required fields
@@ -93,17 +93,22 @@ router.post('/api/broker-profile', upload.single('reraIDCard'), async (req, res)
   }
 
   try {
-    // Upload RERA ID Card to Vercel Blob storage
-    const blobName = `${Date.now()}-${req.file.originalname}`;
-    const blobResult = await put(blobName, req.file.buffer, { access: 'public' });
-    const reraIDCardUrl = blobResult.url;
+    // Handle profile photo upload to Vercel Blob storage
+    let brokerIDUrl = '';
 
+    if (req.file) {
+      const blobName = `${Date.now()}-${req.file.originalname}`;
+      const blobResult = await put(blobName, req.file.buffer, { access: 'public' });
+      brokerIDUrl = blobResult.url;
+    }
+
+  
     // Create new broker profile in the database
     const broker = new Broker({
       reraBrokerID,
       companyLicenseNumber,
       companyTelephoneNumber,
-      reraIDCardUrl,
+      reraIDCardUrl:brokerIDUrl,
     });
 
     await broker.save();
