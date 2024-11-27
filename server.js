@@ -29,13 +29,16 @@ app.use(cors({
 }));
 
 // Middleware for parsing requests
-app.use(bodyParser.json({ limit: '100mb' }));
-app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+app.use(bodyParser.json({ limit: '20mb' })); // Increase JSON payload size limit
+app.use(bodyParser.urlencoded({ limit: '20mb', extended: true })); // Increase URL-encoded payload size limit
 
 // Configure Multer for file uploads
 const storage = multer.memoryStorage(); // Use memory storage for direct Blob uploads
-const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('profilePhoto'); // Limit file size to 10MB
-
+// Configure Multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // Limit file size to 10MB per file
+});
 // Authentication Middleware
 const auth = async (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
