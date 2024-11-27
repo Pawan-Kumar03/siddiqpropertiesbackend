@@ -9,6 +9,7 @@ import Listing from './models/Listing.js';
 import { put } from '@vercel/blob'; 
 import User from './models/User.js';
 import Agent from './models/Agent.js'
+import Broker from './models/Broker.js'
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
