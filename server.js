@@ -34,7 +34,7 @@ app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 // Configure Multer for file uploads
 const storage = multer.memoryStorage(); // Use memory storage for direct Blob uploads
-const upload = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('profilePhoto'); // Limit file size to 10MB
+const uploadAgentProfile = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('profilePhoto'); // Limit file size to 10MB
 
 // Authentication Middleware
 const auth = async (req, res, next) => {
@@ -56,7 +56,7 @@ const auth = async (req, res, next) => {
 };
 
 // Agent Profile Route
-app.post('/api/agent-profile', upload, async (req, res) => {
+app.post('/api/agent-profile', uploadAgentProfile, async (req, res) => {
   const { agentName, agentEmail, contactNumber, contactWhatsApp } = req.body;
 
   if (!agentName || !agentEmail || !contactNumber || !contactWhatsApp) {
@@ -408,6 +408,11 @@ app.get('/api/user-listings', auth, async (req, res) => {
       res.status(500).json({ message: 'Server Error' });
   }
 });
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit per file
+}).array('images'); // Use 'images' to match the field name from the frontend
 
 app.post('/api/listings', auth, upload, async (req, res) => {
   const {
