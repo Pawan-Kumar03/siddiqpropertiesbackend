@@ -412,7 +412,10 @@ app.get('/api/user-listings', auth, async (req, res) => {
 const upload = multer({
   storage: storage,
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit per file
-}).array('images'); // Use 'images' to match the field name from the frontend
+}).fields([
+  { name: 'images', maxCount: 10 }, // For multiple images
+  { name: 'pdf', maxCount: 1 }      // For a single PDF
+]);
 
 app.post('/api/listings', auth, upload, async (req, res) => {
   const {
@@ -422,27 +425,24 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     extension, broker, phone, email, whatsapp, purpose, status, amenities,
   } = req.body;
 
-  // Check if req.user.listings is defined and an array
-  if (!req.user.listings) {
-    req.user.listings = []; // Initialize if undefined
-  }
-
   try {
-    const files = req.files || [];
-    const images = [];
+    const images = req.files.images || [];
+    const pdf = req.files.pdf ? req.files.pdf[0] : null; // Handle single PDF file
+    const uploadedImages = [];
     let pdfUrl = '';
 
-    // Process uploaded files
-    for (const file of files) {
-      const blobName = `${Date.now()}-${file.originalname}`;
-      const blobResult = await put(blobName, file.buffer, { access: 'public' });
+    // Process image uploads
+    for (const image of images) {
+      const blobName = `${Date.now()}-${image.originalname}`;
+      const blobResult = await put(blobName, image.buffer, { access: 'public' });
+      uploadedImages.push(blobResult.url);
+    }
 
-      // Determine if the file is an image or a PDF
-      if (file.mimetype.startsWith('image/')) {
-        images.push(blobResult.url);
-      } else if (file.mimetype === 'application/pdf') {
-        pdfUrl = blobResult.url;
-      }
+    // Process PDF upload
+    if (pdf) {
+      const pdfBlobName = `${Date.now()}-${pdf.originalname}`;
+      const pdfBlobResult = await put(pdfBlobName, pdf.buffer, { access: 'public' });
+      pdfUrl = pdfBlobResult.url;
     }
 
     const listing = new Listing({
@@ -466,9 +466,9 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       agentCallNumber,
       agentEmail,
       agentWhatsapp,
-      image: images.length === 1 ? images[0] : '',
-      images: images.length > 1 ? images : [],
-      pdf: pdfUrl, // Store PDF URL
+      image: uploadedImages.length === 1 ? uploadedImages[0] : '',
+      images: uploadedImages,
+      pdf: pdfUrl,
       extension,
       broker,
       phone,
@@ -490,6 +490,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 
 
