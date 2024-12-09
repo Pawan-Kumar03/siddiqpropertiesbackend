@@ -419,10 +419,8 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     title, price, city, location, country, propertyType, beds, baths, description,
     propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
     reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
-    extension, broker, phone, email, whatsapp, purpose, status, amenities
+    extension, broker, phone, email, whatsapp, purpose, status, amenities,
   } = req.body;
-
-  console.log('Request body:', req.body);
 
   // Check if req.user.listings is defined and an array
   if (!req.user.listings) {
@@ -430,22 +428,29 @@ app.post('/api/listings', auth, upload, async (req, res) => {
   }
 
   try {
-    const images = req.files
-      ? await Promise.all(
-          req.files.map(async (file) => {
-            const blobName = `${Date.now()}-${file.originalname}`;
-            const blobResult = await put(blobName, file.buffer, { access: 'public' });
-            return blobResult.url;
-          })
-        )
-      : [];
+    const files = req.files || [];
+    const images = [];
+    let pdfUrl = '';
+
+    // Process uploaded files
+    for (const file of files) {
+      const blobName = `${Date.now()}-${file.originalname}`;
+      const blobResult = await put(blobName, file.buffer, { access: 'public' });
+
+      // Determine if the file is an image or a PDF
+      if (file.mimetype.startsWith('image/')) {
+        images.push(blobResult.url);
+      } else if (file.mimetype === 'application/pdf') {
+        pdfUrl = blobResult.url;
+      }
+    }
 
     const listing = new Listing({
       title,
       price,
       city,
       location,
-      country, // Added country field
+      country,
       propertyType,
       beds,
       baths,
@@ -453,7 +458,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       propertyReferenceId,
       building,
       neighborhood,
-      developments, // Added developments field
+      developments,
       landlordName,
       reraTitleNumber,
       reraPreRegistrationNumber,
@@ -463,6 +468,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       agentWhatsapp,
       image: images.length === 1 ? images[0] : '',
       images: images.length > 1 ? images : [],
+      pdf: pdfUrl, // Store PDF URL
       extension,
       broker,
       phone,
@@ -470,8 +476,8 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       whatsapp,
       purpose,
       status,
-      amenities: amenities || [], // Adding amenities to the listing
-      user: req.user._id, // Associate the listing with the logged-in user
+      amenities: amenities || [],
+      user: req.user._id,
     });
 
     const savedListing = await listing.save();
@@ -484,6 +490,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
 
 
 // Update the PUT route to handle multipart form data
