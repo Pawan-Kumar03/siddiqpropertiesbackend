@@ -8,52 +8,33 @@ import twilio from 'twilio';
 import Listing from './models/Listing.js';
 import { put } from '@vercel/blob'; 
 import User from './models/User.js';
-import Agent from './models/Agent.js';
-import Broker from './models/Broker.js';
+import Agent from './models/Agent.js'
+import Broker from './models/Broker.js'
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 import crypto from 'crypto'; 
 import { body, validationResult } from 'express-validator';
+
 dotenv.config();
 
 const app = express();
 const router = express.Router();
 
-app.use(cors()); // Allow all origins
-
-// CORS configuration (Allow both local and deployed frontend)
+// Enable CORS
 app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      'http://localhost:5173',  // Local development origin
-      'https://siddiqpropertiesfrontend.vercel.app/'  // Deployed frontend on Vercel
-    ];
-
-    // If origin is not present (like in server-to-server calls) or in allowedOrigins array, accept the request
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      console.error(`CORS error: Origin ${origin} not allowed by CORS policy.`);
-      return callback(new Error(`CORS error: Origin ${origin} not allowed by CORS policy.`), false);
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  origin: 'https://siddiqpropertiesfrontend.vercel.app/', // Allow your frontend domain
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 }));
-
 
 // Middleware for parsing requests
 app.use(bodyParser.json({ limit: '100mb' }));
 app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
 
 // Configure Multer for file uploads
-const storage = multer.memoryStorage();
-const uploadAgentProfile = multer({
-  storage: storage, 
-  limits: { fileSize: 10 * 1024 * 1024 }  // Limit file size to 10MB
-}).single('profilePhoto');
+const storage = multer.memoryStorage(); // Use memory storage for direct Blob uploads
+const uploadAgentProfile = multer({ storage: storage, limits: { fileSize: 10 * 1024 * 1024 } }).single('profilePhoto'); // Limit file size to 10MB
 
 // Authentication Middleware
 const auth = async (req, res, next) => {
@@ -70,7 +51,7 @@ const auth = async (req, res, next) => {
     }
     next();
   } catch (error) {
-    return res.status(401).json({ message: 'Token is not valid', error: error.message });
+    res.status(401).json({ message: 'Token is not valid', error: error.message });
   }
 };
 
@@ -106,6 +87,23 @@ app.post('/api/agent-profile', uploadAgentProfile, async (req, res) => {
     res.status(500).json({ message: 'Internal Server Error' });
   }
 });
+
+// Get Agent by Email
+app.get('/api/agents/:email', async (req, res) => {
+  try {
+    const agent = await Agent.findOne({ agentEmail: req.params.email });
+
+    if (!agent) {
+      return res.status(404).json({ message: 'Agent not found' });
+    }
+
+    res.status(200).json(agent);
+  } catch (error) {
+    console.error('Error fetching agent by email:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+});
+
 
 const uploadBrokerID = multer({ 
   storage: storage, 
@@ -198,9 +196,6 @@ const uploadMultiple = multer({
     }
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
-app.get('/', (req, res) => {
-  res.send('Welcome to siddiqproperties');
-});
 
 app.post('/api/signup', [
   body('name').not().isEmpty().withMessage('Name is required'),
@@ -348,7 +343,7 @@ app.get('/api/verify/:token', async (req, res) => {
     user.verificationTokenExpires = undefined;
     await user.save();
 
-    res.redirect('https://www.siddiqproperties.com/');
+    res.redirect('https://www.investibayt.com/');
   } catch (error) {
     console.error('Email verification error:', error.message);
     res.status(500).json({ message: 'Server error' });
@@ -400,7 +395,7 @@ app.post('/api/verify/request', auth, async (req, res) => {
     user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const verificationUrl = `https://www.siddiqproperties.com/verify/${verificationToken}`;
+    const verificationUrl = `https://www.investibayt.com/verify/${verificationToken}`;
     console.log('verificationToken: ',verificationToken)
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -444,7 +439,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
     title, price, city, location, country, propertyType, beds, baths, description,
     propertyReferenceId, building, neighborhood, developments, landlordName, reraTitleNumber,
     reraPreRegistrationNumber, agentName, agentCallNumber, agentEmail, agentWhatsapp,
-    extension, broker, phone, email, whatsapp, purpose, status, amenities,
+     broker, phone, email, whatsapp, purpose, status, amenities,
   } = req.body;
 
   try {
@@ -491,7 +486,7 @@ app.post('/api/listings', auth, upload, async (req, res) => {
       image: uploadedImages.length === 1 ? uploadedImages[0] : '',
       images: uploadedImages,
       pdf: pdfUrl,
-      extension,
+     
       broker,
       phone,
       email,
@@ -576,7 +571,7 @@ app.post('/api/password-reset-request', async (req, res) => {
     user.resetTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const resetUrl = `https://www.siddiqproperties.com/reset-password/${resetToken}`;
+    const resetUrl = `https://www.investibayt.com/reset-password/${resetToken}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
@@ -732,4 +727,3 @@ app.post('/api/whatsapp', async (req, res) => {
     res.status(500).json({ message: 'Failed to send WhatsApp message' });
   }
 });
-export default app;
