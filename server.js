@@ -23,7 +23,7 @@ const router = express.Router();
 
 // Enable CORS
 app.use(cors({
-  origin: 'https://siddiqpropertiesfrontend.vercel.app', // Allow your frontend domain
+  origin: 'https://www.siddiqproperties.com', // Allow your frontend domain
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
   allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 }));
@@ -359,7 +359,7 @@ app.get('/api/verify/:token', async (req, res) => {
     user.verificationTokenExpires = undefined;
     await user.save();
 
-    res.redirect('https://siddiqpropertiesfrontend.vercel.app/');
+    res.redirect('https://www.siddiqproperties.com/');
   } catch (error) {
     console.error('Email verification error:', error.message);
     res.status(500).json({ message: 'Server error' });
@@ -411,7 +411,7 @@ app.post('/api/verify/request', auth, async (req, res) => {
     user.verificationTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const verificationUrl = `https://siddiqpropertiesfrontend.vercel.app/verify/${verificationToken}`;
+    const verificationUrl = `https://www.siddiqproperties.com/verify/${verificationToken}`;
     console.log('verificationToken: ',verificationToken)
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -587,7 +587,7 @@ app.post('/api/password-reset-request', async (req, res) => {
     user.resetTokenExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
-    const resetUrl = `https://siddiqpropertiesfrontend.vercel.app/reset-password/${resetToken}`;
+    const resetUrl = `https://www.siddiqproperties.com/reset-password/${resetToken}`;
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
       to: user.email,
