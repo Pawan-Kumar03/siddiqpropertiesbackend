@@ -15,33 +15,34 @@ import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer'; 
 import crypto from 'crypto'; 
 import { body, validationResult } from 'express-validator';
-
 dotenv.config();
 
 const app = express();
 const router = express.Router();
 
-// CORS configuration
+app.use(cors()); // Allow all origins
+
+// CORS configuration (Allow both local and deployed frontend)
 app.use(cors({
   origin: (origin, callback) => {
     const allowedOrigins = [
-      'https://www.siddiqproperties.com',  // Production domain
-      'http://localhost:5173',        // Local development origin
+      'http://localhost:5173',  // Local development origin
+      'https://siddiqpropertiesfrontend.vercel.app/'  // Deployed frontend on Vercel
     ];
 
-    // If origin is not present or it is in allowedOrigins array, accept the request
+    // If origin is not present (like in server-to-server calls) or in allowedOrigins array, accept the request
     if (!origin || allowedOrigins.includes(origin)) {
       return callback(null, true);
     } else {
-      // Log origin and reject request
       console.error(`CORS error: Origin ${origin} not allowed by CORS policy.`);
       return callback(new Error(`CORS error: Origin ${origin} not allowed by CORS policy.`), false);
     }
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true  // Allow cookies or Authorization headers
+  credentials: true
 }));
+
 
 // Middleware for parsing requests
 app.use(bodyParser.json({ limit: '100mb' }));
@@ -197,6 +198,9 @@ const uploadMultiple = multer({
     }
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
+app.get('/', (req, res) => {
+  res.send('Welcome to siddiqproperties');
+});
 
 app.post('/api/signup', [
   body('name').not().isEmpty().withMessage('Name is required'),
@@ -728,3 +732,4 @@ app.post('/api/whatsapp', async (req, res) => {
     res.status(500).json({ message: 'Failed to send WhatsApp message' });
   }
 });
+export default app;
