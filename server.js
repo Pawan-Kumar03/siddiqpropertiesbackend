@@ -197,6 +197,22 @@ const uploadMultiple = multer({
   }
 }).array('images', 12); // Handle multiple file uploads with field name 'images'
 
+app.get('/api/listings', async (req, res) => {
+  const { city, location } = req.query;
+  try {
+    const query = {};
+    if (city) query.city = city;
+    if (location) query.location = location;
+
+    const listings = await Listing.find(query);
+    res.json(listings.length ? listings : []);
+  } catch (error) {
+    console.error('Error fetching listings:', error.message, error.stack);
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+});
+
+
 app.post('/api/signup', [
   body('name').not().isEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Please provide a valid email'),
@@ -617,20 +633,6 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal Server Error' });
 });
 
-app.get('/api/listings', async (req, res) => {
-  const { city, location } = req.query;
-  try {
-    const query = {};
-    if (city) query.city = city;
-    if (location) query.location = location;
-
-    const listings = await Listing.find(query);
-    res.json(listings.length ? listings : []);
-  } catch (error) {
-    console.error('Error fetching listings:', error);
-    res.status(500).json({ message: 'Server Error' });
-  }
-});
 
 app.get('/api/listings/:city', async (req, res) => {
   const { city } = req.params;
